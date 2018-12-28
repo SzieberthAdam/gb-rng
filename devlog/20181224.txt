@@ -44,12 +44,12 @@ screen and  memory dump.   And this defined the  first milestone
 milestone (2.0).
 
 For  1.0  I want my main file do some initializaton for optional
-use by the  attached RNGs.  “Note that  GameBoy  internal RAM on
+use by the  attached RNGs.  "Note that  GameBoy  internal RAM on
 power up contains random data. All of the GameBoy emulators tend
 to set all RAM to value $00 on entry. Cart RAM the first time it
 is accessed on a real GameBoy contains random data. It will only
 contain known data if the  GameBoy  code initializes it to  some
-value.” [PD]  This means that the  Game Boy  has a  nice entropy
+value." [PD]  This means that the  Game Boy  has a  nice entropy
 stored in its RAM after power up.
 
 I decided to extract this randomness into a  256 bytes long area

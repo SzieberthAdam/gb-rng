@@ -1,0 +1,52 @@
+RANDOMNESS EXTRACTOR                                  2018-12-25
+====================                                  2018-12-28
+
+After my last devlog I started do code just to get stuck immedi‐
+ately.  I planned to write  a subroutine in a separate  ASM file
+which do the extraction from one given area to another. However,
+it seemed that a GB has not enough registers for this: Both area
+could be defined with four 16 bit numbers plus the extractor may
+require some more. For instance a Von Neumann randomness extrac‐
+tor [NEUEXT]  may require  to keep track  of the number  of bits
+done  within a byte.  Moreover,  as conversion may be not 1:1 in
+its length,  handling the difference would also result a compli‐
+cated code which I surely not want tho write this time.
+
+Make it plain simple -- I thought, and I did.  I dropped the ex‐
+tractor  completely and went for a simple RAM cleanup except for
+the mentioned  256 bytes long area  ($DF00--$DFFF).  I wrote the
+code  which loads the  CP437 characterset and  as a first step I
+displayed the displayed  256 bytes long RAM area.  For the first
+time it looked promising but after several restarts I started to
+get suspicious as some tiles were clearly overrepresented.  Nor‐
+mally I would expect one instance of every tiles in average, but
+I noticed some vales never go below 5-6 instances. Check the at‐
+tached screenshots  to see it yourself.  The triple bar (≡; $F0)
+has obviously too many instances there.
+
+My Everdrive  is under shipment so  I can only test and debug my
+code with BGB, so this weird randomness is provided by BGB which
+may be identical with the behavior of  the real hardware as BGBs
+features text suggest:  "realistic initial ram values  -  random
+but with  specific  bit patterns,  and simulated values left  by
+bootroms (for example "nibbler (pd)" depends on this)". [BGBFEA]
+
+But whether or not the real hardware have better randomness than
+the emulator,  the games which rely on  the RNGs of this project
+should work nicely on both. So before I go for coding RNGs I can
+not  fully avoid  the randomness extraction. At first  I will go
+for an XOR loop on the 256 bytes with the  other RAM areas and I
+hope that will provide the randomness I expect.
+
+Diehard testing requires  many megabytes of data but  I will not
+turn on and off  my Game Boy a thousand times to be able to col‐
+lect it. So I might write  a Python scipt which would report the
+distribution of the values in a data.
+
+
+
+[BGBFEA]    BGB features                                         http://bgb.bircd.org/#features
+
+[NEUEXT]    John von Neumann. Various techniques used in         https://mcnp.lanl.gov/pdf_files/nbs_vonneumann.pdf
+            connection with random digits.
+            Applied Math Series, 12:36–38, 1951.
