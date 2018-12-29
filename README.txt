@@ -11,6 +11,5 @@ erators and their testing written for the classic Game Boy hard‐
 ware.  The main (host) program is kept simple as possible yet it
 provides a standard initial random seed  for the RNGs and a vis‐
 ual feedback of the random data.  The attached RNG ASM files are
-only required to name their subroutines as "rand".
-
-
+only required  to have two exported subroutines  named as "rand"
+and "rand-init".

@@ -1,6 +1,6 @@
 ;* GB-RNG main (host) ASM file
 ;* Copyright (c) 2018 Szieberth Ádám
-;* MIT License (see LICENSE file for more info)
+;* 0BSD License (see LICENSE file for more info)
 
 
 ;* =============================================================================
@@ -460,12 +460,29 @@ load_tiles:
 ;* 256 random bytes from the seed area ($DF00--$DFFF).
 
 display_random_numbers:
-    ld hl, $9800                ; 3|3
-    ld de, $DF00                ; 3|3   temporary
+    call rand_init              ; 3|6
+    push af                     ; 1|4   save RNG AF
+    push bc                     ; 1|4   save RNG BC
+    push hl                     ; 1|4   save RNG HL
+    ld hl, $9800                ; 3|4   set HL to destination address
 .repeat
-    ld a, [de]                  ; 1|2   temporary, will be replaced with a call
-    inc de                      ; 1|2   temporary
-    ld b, a                     ; 1|1
+    ld a, h                     ; 1|1   cache the destination address to [$FFCD]
+    ld [$FF00+$CD], a           ; 2|3   ...
+    ld a, l                     ; 1|1   ...
+    ld [$FF00+$CE], a           ; 2|3   ___
+    pop hl                      ; 1|3   load RNG HL
+    pop bc                      ; 1|3   load RNG BC
+    pop af                      ; 1|3   load RNG AF
+    call rand                   ; 3|6   A = random byte
+    push af                     ; 1|4   save RNG AF
+    push bc                     ; 1|4   save RNG BC
+    push hl                     ; 1|4   save RNG HL
+    ld b, a                     ; 1|1   B = random byte (cached)
+    ; now we load back the cached HL
+    ld a, [$FF00+$CD]           ; 2|3   load the destination address
+    ld h, a                     ; 1|1   ...
+    ld a, [$FF00+$CE]           ; 2|3   ...
+    ld l, a                     ; 1|1   ___
 .wait_for_vram
     ld a, [rSTAT]               ; 3|4
     and %00000010               ; 2|2   in mode 2 or 3
@@ -493,6 +510,9 @@ display_random_numbers:
     inc h                       ; 1|1   there was a carry by the low nibble ADD
     jr .repeat                  ; 2|3
 .done
+    pop hl                      ; 1|3   load RNG HL at exit
+    pop bc                      ; 1|3   load RNG BC at exit
+    pop af                      ; 1|3   load RNG AF at exit
 
 
 ;* 4. Endless loop
