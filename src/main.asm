@@ -359,86 +359,159 @@ main:
 
 ;* 1. RAM clean up
 ;* -----------------------------------------------------------------------------
+
+;* At first we pad the HRAM 128 bytes long area ($FF80--$FFFF) with zeroes. Here
+;* we gain profit from the post-increment load instruction "ld [hl+], a" which
+;* loads a into [HL] and increments HL thereafter.
 clean_ram:
-    xor a                       ; 1|1   A=0, pad value
+    xor a, a                    ; 1|1   A=0, pad value; cheaper than "ld a, 0"
 .clean_hram
-    ld b, $80                   ; 2|2   128 (length)
-    ld hl, _HRAM                ; 3|3   start address
+    ld b, 128                   ; 2|2   byte count
+    ld hl, $FF80                ; 3|3   start address
 .clean_hram_loop
     ld [hl+], a                 ; 1|2
     dec b                       ; 1|1
     jr nz, .clean_hram_loop     ; 2|2/3
+
+;* As I stated in my 2018-12-28 devlog, I was not satisfied with the initial
+;* random bytes so here we XOR'ing all the work RAMs bytes into a 256 bytes long
+;* area ($DF00--$DFFF). We also pad the other RAM area after we are done with
+;* the XOR operation.
+extract_and_clean_wram:
 .clean_wram
-    ld hl, _RAM                 ; 3|3   start address ($C000)
+    ld de, $C000                ; 3|3   source start address ($C000)
+.reset_rand_address
+    ld hl, $DF00                ; 3|3   random area start address ($DF00)
 .clean_wram_loop
-    ld a, h                     ; 1|1
-    cp $df                      ; 2|2   at $DF00 we are done
-    jr z, .clean_wram_loop_end  ; 2|2/3
-    xor a                       ; 1|1   A=0, pad value
+    ld a, [de]                  ; 1|2
+    xor a, [hl]                 ; 1|2
     ld [hl+], a                 ; 1|2
+    xor a, a                    ; 1|1   A=0, pad value; cheaper than "ld a, 0"
+    ld [de], a                  ; 1|2
+    inc de                      ; 1|2
+    ld a, d                     ; 1|1
+    cp $DF                      ; 2|2   if the source reached the random area
+    jr z, .clean_wram_loop_end  ; 2|2/3 start address ($DF00), then we are done
+    ld a, h                     ; 1|1
+    cp $E0                      ; 2|2   the random area address is forced into a
+    jr z, .reset_rand_address   ; 2|2/3 loop ($DF00--$DFFF)
     jr .clean_wram_loop         ; 2|3
 .clean_wram_loop_end
 
 
 ;* 2. Load tiles
 ;* -----------------------------------------------------------------------------
+
+;* Now we load the CP437 characterset tiles into the background tiles area of
+;* the VRAM ($8000--$8FFF). To be able to write into the VRAM we have to wait
+;* for either the H-Blank (mode 0) or the V-Blank (mode 1) state. This means
+;* that before every copy operation we have to check the LCD STAT register
+;* (rSTAT/$FF41). The mode value sits on the bits 0 and 1. If we found that the
+;* mode is 2 (OAM Search) or 3 (Transfer) then we have to keep waiting.
+;* Technically we could access the VRAM during the 20 clocks long OAM Search but
+;* it would be dangerous as we write into the VRAM (8/12?) clocks later than we
+;* loaded the STAT value. Instead we use the 20 clocks of OAM Search as a safety
+;* zone to ensure that we have access to the VRAM at the time of our load
+;* operation, "ld [de], a".
 load_tiles:
-    jp load_tile_data           ; 3|4
-tile_data:
-    INCBIN "font.bin"           ; 4096|0
-load_tile_data:
-    ld hl, tile_data            ; 3|3
-    ld de, _VRAM                ; 3|3
-    ld bc, 4096 + $0101         ; 3|3   increasing both B and C is a clever
-                                ;       trick which let me to decrement them
-                                ;       separately
+    ld hl, tile_data            ; 3|3   source address
+    ld de, $8000                ; 3|3   destination address (VRAM)
+    ld c, $90                   ; 2|2   cached high nibble of the address of the
+                                ;       end of destination area + 1 ($9000)
 .load_tile_data_loop
-.wait_for_lcd
+.wait_for_vram
     ld a, [rSTAT]               ; 3|4
-    and %00000010               ; 2|2   nor hblank nor vblank
-    jr nz, .wait_for_lcd        ; 2|2/3
+    and a, %00000010            ; 2|2   in mode 2 or 3
+    jr nz, .wait_for_vram       ; 2|2/3
     ld a, [hl+]                 ; 1|2
-    ld [de], a                  ; 1|2
+    ld [de], a                  ; 1|2   loads value to VRAM
     inc de                      ; 1|2
-    dec	c                       ; 1|1
-    jr nz, .load_tile_data_loop ; 2|2/3
-    dec b                       ; 1|1
+    ld a, d                     ; 1|1
+    cp a, c                     ; 1|1   here we test whether we reached $9000
+                                ;       we spare one clock per loop by using the
+                                ;       cached value rather than $90 explicitely
     jr nz, .load_tile_data_loop ; 2|2/3
 
 
 ;* 3. Display 20×18 random numbers
 ;* -----------------------------------------------------------------------------
+
+;* Now we display the random values. For this, the upper left 20×18 tiles of the
+;* BG Map area of the VRAM has to get filled with the random bytes. However, as
+;* we are not guaranteed that our RNG subroutine provides the value within a
+;* handful of clocks, we should get the value before the STAT check.
+
+;* We also should keep the first 20 tiles and skip the remaining 12 tiles of
+;* every lines in the (32×32) BG map. The first tile to be skipped is at $9814
+;* (note that $14==20). We simply increase the address register here by 12 and
+;* go for the second row. The first tile to be skipped there is at $9834
+;* ($34=20+12+20), and same for the third row and $9054 and so on. The LS bytes
+;* are $14, $34, $54, $74, $94, $B4, $D4, $F4, and again, $14. The lower 5 bits
+;* of these numbers are identical: %10100=$14. We will AND our address with this
+;* value to determine whether we shoudl jump to the next line.
+
+;* At $9A34 we are done or if we do the line jump first then at $9A40. We could
+;* use a row counter instead of the 2 bytes address comparision but the we
+;* should use here as few registers as possible which makes them available for
+;* the RNG subroutine without the need of push/pop. So this code uses the B
+;* register to cache the random byte and the HL register fot the VRAM address.
+
+;* NOTE that currently there is no RNG to be called. Instead, we simply copy the
+;* 256 random bytes from the seed area ($DF00--$DFFF).
+
 display_random_numbers:
-    ld de, _SCRN0               ; 3|3
-    ld hl, $DF00                ; 3|3
-    ld bc, $1214                ; 3|3   b = 18; c = 20 (rows/cols)
-.load_bg_tiles_loop
-.wait_for_lcd
+    ld hl, $9800                ; 3|3
+    ld de, $DF00                ; 3|3   temporary
+.repeat
+    ld a, [de]                  ; 1|2   temporary, will be replaced with a call
+    inc de                      ; 1|2   temporary
+    ld b, a                     ; 1|1
+.wait_for_vram
     ld a, [rSTAT]               ; 3|4
-    and %00000010               ; 2|2
-    jr nz, .wait_for_lcd        ; 2|2/3
-    ld a, [hl+]                 ; 1|2
-    ld [de], a                  ; 1|2
-    inc de                      ; 1|2
-    dec c                       ; 1|1
-    jr nz, .load_bg_tiles_loop  ; 2|2/3
-    ld a, e                     ; 1|1
+    and %00000010               ; 2|2   in mode 2 or 3
+    jr nz, .wait_for_vram       ; 2|2/3
+    ld a, b                     ; 1|1
+    ld [hl+], a                 ; 1|2   loads value to VRAM
+.end_check                      ;       HL == $9A34; .done; .end_check_break
+    ld a, h                     ; 1|1
+    cp $9A                      ; 2|2
+    jr nz, .end_check_break     ; 2|2/3
+    ld a, l                     ; 1|1
+    cp $34                      ; 2|2
+    jr z, .done                 ; 2|2/3
+.end_check_break
+.skip12tiles_check              ;       L & $14 == $14; .skip12tiles; .repeat
+    ld a, l                     ; 1|1
+    and a, $14                  ; 2|2
+    cp a, $14                   ; 2|2
+    jr nz, .repeat              ; 2|2/3
+.skip12tiles
+    ld a, l                     ; 1|1
     add a, 12                   ; 2|2
-    jr nc, .test1               ; 2|2/3
-    inc d                       ; 1|1
-.test1
-    ld e, a                     ; 1|1
-    ld c, $14                   ; 2|2
-    dec b                       ; 1|1
-    jr nz, .load_bg_tiles_loop  ; 2|2/3
+    ld l, a                     ; 1|1
+    jr nc, .repeat              ; 2|2/3
+    inc h                       ; 1|1   there was a carry by the low nibble ADD
+    jr .repeat                  ; 2|3
+.done
 
 
 ;* 4. Endless loop
 ;* -----------------------------------------------------------------------------
+;* Finally we enter into an infinite loop.
 wait:
     halt                        ; 1|4
     nop                         ; 1|4
     jr wait                     ; 2|12
+
+
+;* Hardcoded Data
+;* -----------------------------------------------------------------------------
+;* I add the 4096 bytes long font tile data to the end of the program area. This
+;* simplifies debugging and ensures a 32 Kbytes long ROM file which spares us
+;* the warnings of the BGB emulator.
+SECTION "Tile Data", ROM0[$7000]
+tile_data:
+    INCBIN "font.bin"           ; 4096|0
 
 
 
