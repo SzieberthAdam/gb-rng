@@ -45,7 +45,7 @@
 ;* 'insert' this file into the present ASM file by using the assembler INCLUDE
 ;* command:
 INCLUDE "HARDWARE.INC"
-
+INCLUDE "GBRNG.INC"
 
 ;* =============================================================================
 ;* INITIALIZATION
@@ -62,14 +62,14 @@ INCLUDE "HARDWARE.INC"
 ;*     pop af
 ;*     ld [H_RNG1], a
 
-H_RNG1 EQU $FFF1                ;       we retain the address used by the game
+H_RNG1 EQU GBRNG_SHORTSEED_START
 
 SECTION "RNG", ROM0
 
 ;* We have a nice random seed value in $DF00 so we copy that to H_RNG1:
 
 rand_init::
-    ld a, [$DF00]               ; 3|4
+    ld a, [GBRNG_SEED_START]    ; 3|4
     ld [H_RNG1], a              ; 2|3   LDH
     ret                         ; 1|4
 

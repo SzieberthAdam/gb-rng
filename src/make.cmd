@@ -1,13 +1,13 @@
 @echo off
 
-if "%~1"=="" goto usage
+if "%~1"=="" goto noarg
 
 if not exist %1.asm goto nofile
 
 :create_rom
-rgbasm -o main.o main.asm
-rgbasm -o %1.o %1.asm
-rgblink -d -t -p00 -o gb%1.gb main.o %1.o
+rgbasm -v -o main.o main.asm
+rgbasm -v -o %1.o %1.asm
+rgblink -d -t -p00 -o gb%1.gb %1.o main.o
 rgbfix -v gb%1.gb
 goto end
 
@@ -15,9 +15,12 @@ goto end
 echo File not found: %1.asm
 goto end
 
-:usage
-echo USAGE: make RNG-NAME
-echo A file named RNG-NAME.ASM should exists in the root directory.
-echo The output file will be named as GBRNG-NAME.GB.
+:noarg
+rgbasm -v -o main.o main.asm
+for /f "usebackq delims=|" %%f in (`dir /b "%~dp0"\\rng-*.asm`) do (
+    rgbasm -v -o %%~nf.o %%~nf.asm
+    rgblink -d -t -p00 -o gb%%~nf.gb %%~nf.o main.o
+    rgbfix -v gb%%~nf.gb
+)
 
 :end

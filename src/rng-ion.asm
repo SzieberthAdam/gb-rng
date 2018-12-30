@@ -54,6 +54,7 @@
 ;* 'insert' this file into the present ASM file by using the assembler INCLUDE
 ;* command:
 INCLUDE "HARDWARE.INC"
+INCLUDE "GBRNG.INC"
 
 
 ;* =============================================================================
@@ -65,13 +66,13 @@ SECTION "RNG", ROM0
 ;* This RNG requires two bytes of random seed. We have 256 bytes at startup
 ;* starting from address $DF00 so we pick the forst two bytes.
 
-randData EQU $FFC0
+randData EQU GBRNG_SHORTSEED_START
 
 rand_init::
-    ld a, [$DF00]               ; 3|4
+    ld a, [GBRNG_SEED_START]    ; 3|4
     ld [randData], a            ; 2|3   LDH
-    ld a, [$DF00 + 1]           ; 3|4
-    ld [randData + 1], a        ; 2|3   LDH
+    ld a, [GBRNG_SEED_START+1]  ; 3|4
+    ld [randData+1], a          ; 2|3   LDH
     ret                         ; 1|4
 
 
@@ -87,7 +88,7 @@ rand_init::
 rand::
     ld a, [randData]            ; 2|3   LDH
     ld h, a                     ; 1|1
-    ld a, [randData + 1]        ; 2|3   LDH
+    ld a, [randData+1]          ; 2|3   LDH
     ld l, a                     ; 1|1
 
     ld a, [rDIV]                ; 2|3   LDH
@@ -102,7 +103,7 @@ rand::
     ld a, h                     ; 1|1
     ld [randData], a            ; 2|3   LDH
     ld a, l                     ; 1|1
-    ld [randData + 1], a        ; 2|3   LDH
+    ld [randData+1], a          ; 2|3   LDH
     ld a, b                     ; 1|1
 
     ret                         ; 1|4

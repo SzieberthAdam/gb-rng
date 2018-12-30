@@ -13,13 +13,24 @@
 
 
 ;* =============================================================================
+;* INCLUDES
+;* =============================================================================
+
+;* HARDWARE.INC contains the 'Hardware Defines' for our program. This has
+;* address location labels for all of the GameBoy Hardware I/O registers. We can
+;* 'insert' this file into the present ASM file by using the assembler INCLUDE
+;* command:
+INCLUDE "GBRNG.INC"
+
+
+;* =============================================================================
 ;* INITIALIZATION
 ;* =============================================================================
 
 SECTION "RNG", ROM0
 
 rand_init::
-    ld hl, $DF00                ; 3|3
+    ld hl, GBRNG_SEED_START     ; 3|3
     ret                         ; 1|4
 
 ;* =============================================================================
@@ -31,8 +42,12 @@ rand_init::
 
 rand::
     ld a, h                     ; 1|1
-    cp $E0                      ; 2|2   we passed $DFFF
-    jr z, .yield_null           ; 2|2/3
+    cp GBRNG_SEED_STOP >> 8     ; 2|2
+    jr nc, .yield_null          ; 2|2/3 NC: GBRNG_SEED_STOP_Hi <= H
+    jr nz, .yield_bc            ; 2|2/3
+    ld a, l                     ; 1|1
+    cp GBRNG_SEED_STOP & $FF    ; 2|2
+    jr nc, .yield_null          ; 2|2/3 NC: GBRNG_SEED_STOP <= HL
 .yield_bc
     ld a, [hl+]                 ; 1|2
     ret                         ; 1|4

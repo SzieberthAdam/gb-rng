@@ -40,6 +40,7 @@
 ;* 'insert' this file into the present ASM file by using the assembler INCLUDE
 ;* command:
 INCLUDE "HARDWARE.INC"
+INCLUDE "GBRNG.INC"
 
 
 ;* =============================================================================
@@ -103,12 +104,12 @@ _Random:
 SECTION "RNG", ROM0
 
 ;* We have a nice random seed value in $DF00 so we will copy that to a fixed
-;* HRAM address: $FFC0.
+;* HRAM address: GBRNG_SHORTSEED_START.
 
-random_ptr EQU $FFC0
+random_ptr EQU GBRNG_SHORTSEED_START
 
 rand_init::
-    ld a, [$DF00]               ; 3|4
+    ld a, [GBRNG_SEED_START]    ; 3|4
     ld [random_ptr], a          ; 2|3   LDH
     ret                         ; 1|4
 
