@@ -1,8 +1,6 @@
-;* RNG-NULL ASM file
+;* RNG-NULL
 ;* Copyright (c) 2018 Szieberth Ádám
 ;* 0BSD License (see LICENSE file for more info)
-
-;* TO BE USED WITH GB-RNG.
 
 
 ;* =============================================================================
@@ -14,11 +12,22 @@
 ;* done with that, it keeps yielding zeroes.
 
 
+;* =============================================================================
+;* INITIALIZATION
+;* =============================================================================
+
 SECTION "RNG", ROM0
 
 rand_init::
     ld hl, $DF00                ; 3|3
     ret                         ; 1|4
+
+;* =============================================================================
+;* RANDOM NUMBER GENERATOR
+;* =============================================================================
+
+;* As stated above, this is not a random number generator. The title serves as a
+;* sample.
 
 rand::
     ld a, h                     ; 1|1

@@ -1,4 +1,4 @@
-;* GB-RNG main (host) ASM file
+;* GB-RNG
 ;* Copyright (c) 2018 Szieberth Ádám
 ;* 0BSD License (see LICENSE file for more info)
 
@@ -478,7 +478,6 @@ display_random_numbers:
     push bc                     ; 1|4   save RNG BC
     push hl                     ; 1|4   save RNG HL
     ld b, a                     ; 1|1   B = random byte (cached)
-    ; now we load back the cached HL
     ld a, [$FF00+$CD]           ; 2|3   load the destination address
     ld h, a                     ; 1|1   ...
     ld a, [$FF00+$CE]           ; 2|3   ...
@@ -539,20 +538,11 @@ tile_data:
 ;* REFERENCES
 ;* =============================================================================
 
-;* [2048-GB]    Sanqui et al.: 2048-gb (GAME)
-;*              https://gbhh.avivace.com/game/2048gb
-
 ;* [AD.SKEL]    Assembly Digest: Tutorial: Making an Empty Game Boy ROM
 ;*              http://assemblydigest.tumblr.com/post/77198211186
 
 ;* [ASMS]       Randy Mongenel (Duo): ASMSchool
 ;*              http://gameboy.mongenel.com/asmschool.html
-
-;* [AWESOME]    Awesome Game Boy Development
-;*              https://github.com/gbdev/awesome-gbdev
-
-;* [GBCPUMan]   DP: Game Boy™ CPU Manual v1.01
-;*              http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
 
 ;* [GBPM]       Game Boy Programming Manual
 ;*              https://archive.org/download/GameBoyProgManVer1.1/GameBoyProgManVer1.1.pdf
@@ -566,14 +556,5 @@ tile_data:
 ;* [RGBDS]      RGBDS Documentation
 ;*              https://rednex.github.io/rgbds/
 
-;* [ULTIMTALK]  Michael Steil: The Ultimate Game Boy Talk (VIDEO)
-;*              https://media.ccc.de/v/33c3-8029-the_ultimate_game_boy_talk
-
-;* [WTI.RAND]   WiniTI: Z80 Routines:Math:Random
-;*              http://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Random
-
 ;* [XY@gbdev]   gbdev post by XY
 ;*              https://discord.gg/gpBxq85
-
-;* [Z80BITS]    Z80 Bits: Random Number Generators
-;*              http://www.msxdev.com/sources/external/z80bits.html#3
