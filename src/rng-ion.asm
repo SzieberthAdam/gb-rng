@@ -45,10 +45,6 @@
 ;* contents are pseudo random." [WB.TIREG] This means that we can replace it
 ;* with the divider register value.
 
-;* Because of the unique memory map of the Game Boy, I divided D by two which
-;* ensures that the readed byte is taken from the ROM and will not access memory
-;* locations marked as not usable.
-
 ;* =============================================================================
 ;* INCLUDES
 ;* =============================================================================
@@ -97,7 +93,6 @@ rand::
     ld a, [rDIV]                ; 2|3   LDH
 
     ld d, a                     ; 1|1
-    srl d                       ; 3|3   added division of the high byte by 2
     ld e, [hl]                  ; 1|2   $00 / $FF most of the time (see below)
     add hl, de                  ; 1|2
     add a, l                    ; 1|1
