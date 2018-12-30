@@ -70,7 +70,7 @@ SECTION "RNG", ROM0
 
 rand_init::
     ld a, [$DF00]               ; 3|4
-    ld [H_RNG1], a              ; 3|4
+    ld [H_RNG1], a              ; 2|3   LDH
     ret                         ; 1|4
 
 
@@ -82,12 +82,21 @@ rand_init::
 ;* register.
 
 rand::
-    ld a, [rDIV]                ; 3|4
+    ld a, [rDIV]                ; 2|3   LDH
     ld b, a                     ; 1|1
-    ld a, [H_RNG1]              ; 3|4
+    ld a, [H_RNG1]              ; 2|3   LDH
     xor a, b                    ; 1|1
-    ld [H_RNG1], a              ; 3|4
+    ld [H_RNG1], a              ; 2|3   LDH
     ret                         ; 1|4
+
+
+;* =============================================================================
+;* REMARKS
+;* =============================================================================
+
+;* This RNG is obviously a week one. There are visible visual patterns in the
+;* generated stream. For instance values at the 2nd, 6th, and 10th positions are
+;* always identical. Not recommended.
 
 
 ;* =============================================================================
