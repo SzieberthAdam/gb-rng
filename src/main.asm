@@ -44,6 +44,7 @@
 ;* 'insert' this file into the present ASM file by using the assembler INCLUDE
 ;* command:
 INCLUDE "HARDWARE.INC"
+INCLUDE "GBRNG.INC"
 
 
 ; ******************************************************************************
@@ -380,22 +381,62 @@ clean_ram:
 extract_and_clean_wram:
 .clean_wram
     ld de, $C000                ; 3|3   source start address ($C000)
-.reset_rand_address
-    ld hl, $DF00                ; 3|3   random area start address ($DF00)
+    ld hl, GBRNG_SEED_START     ; 3|3   set random area start address ($DF00)
 .clean_wram_loop
     ld a, [de]                  ; 1|2
     xor a, [hl]                 ; 1|2
     ld [hl+], a                 ; 1|2
     xor a, a                    ; 1|1   A=0, pad value; cheaper than "ld a, 0"
     ld [de], a                  ; 1|2
-    inc de                      ; 1|2
-    ld a, d                     ; 1|1
-    cp $DF                      ; 2|2   if the source reached the random area
-    jr z, .clean_wram_loop_end  ; 2|2/3 start address ($DF00), then we are done
+
+;* We reset the seed start address if it reached the stop address.
+
     ld a, h                     ; 1|1
-    cp $E0                      ; 2|2   the random area address is forced into a
-    jr z, .reset_rand_address   ; 2|2/3 loop ($DF00--$DFFF)
-    jr .clean_wram_loop         ; 2|3
+    cp GBRNG_SEED_STOP >> 8     ; 2|2
+    jr nz, .noreset             ; 2|2/3
+    ld a, l                     ; 1|1
+    cp GBRNG_SEED_STOP & $FF    ; 2|2
+    jr nz, .noreset             ; 2|2/3
+    ld hl, GBRNG_SEED_START     ; 3|3   reset random area start address ($DF00)
+.noreset
+
+;* We skip the seed area. As long as we are, we keep incrementing the source
+;* address which makes us jump over that area. First we check against the seed
+;* start, then the seed end addresses. For the check, we compare the high (most
+;* significant) bytes, then if there is an equality, the low bytes.
+
+.step
+    inc de                      ; 1|2
+
+    ld a, d                     ; 1|1
+
+.cp_ram_end
+    cp $E0                      ; 2|2   if the source reached the end of WRAM
+    jr z, .clean_wram_loop_end  ; 2|2/3 ($E000), then we are done (BREAK)
+
+.cp_seed_start_high
+    cp GBRNG_SEED_START >> 8    ; 2|2
+    jr c, .clean_wram_loop      ; 2|2/3 C: Haddr < seed_strt_Haddr (NEXT)
+    jr nz, .cp_seed_end_high    ; 2|2/3 NZ: Haddr != seed_strt_Haddr
+.cp_seed_start_low
+    ld a, e                     ; 1|1
+    cp GBRNG_SEED_START & $FF   ; 2|2
+    jr c, .clean_wram_loop      ; 2|2/3 C: addr < seed_strt_addr (NEXT)
+
+    ld a, d                     ; 1|1
+
+.cp_seed_end_high
+    cp GBRNG_SEED_STOP >> 8     ; 2|2
+    jr z, .cp_seed_end_low      ; 2|2/3 Z: seed_stop_Haddr == Haddr
+    jr nc, .clean_wram_loop     ; 2|2/3 NC: seed_stop_Haddr < Haddr (NEXT)
+    jr .step                    ; 2|3   within the seed area (STEP AGAIN)
+.cp_seed_end_low
+    ld a, e                     ; 1|1
+    cp GBRNG_SEED_STOP & $FF    ; 2|2
+    jr nc, .clean_wram_loop     ; 2|2/3 NC: seed_stop_addr <= addr (NEXT)
+
+    jr .step                    ; 2|3   within the seed area (STEP AGAIN)
+
 .clean_wram_loop_end
 
 
