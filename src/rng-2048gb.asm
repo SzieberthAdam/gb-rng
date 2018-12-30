@@ -82,12 +82,12 @@ rand_init::
 ;* register.
 
 rand::
-    ld a, [rDIV]
-    ld b, a
-    ld a, [H_RNG1]
-    xor b
-    ld [H_RNG1], a
-    ret
+    ld a, [rDIV]                ; 3|4
+    ld b, a                     ; 1|1
+    ld a, [H_RNG1]              ; 3|4
+    xor a, b                    ; 1|1
+    ld [H_RNG1], a              ; 3|4
+    ret                         ; 1|4
 
 
 ;* =============================================================================
