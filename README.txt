@@ -1,6 +1,6 @@
 GB-RNG
 Copyright (c) 2018 Szieberth Ádám
-MIT License (see LICENSE file for more info)
+0BSD License (see LICENSE file for more info)
 
 
 ABSTRACT
