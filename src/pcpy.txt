@@ -1,0 +1,4 @@
+The  PCPY.BIN  file contains the parity bits of a byte.  Use the
+byte as an offset to get the parity bit value. The parity bit is
+the least significant bit  of the popcount (number of 1s) of the
+byte.

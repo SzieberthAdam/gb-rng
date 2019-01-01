@@ -47,14 +47,14 @@ INCLUDE "HARDWARE.INC"
 
 INCLUDE "GBRNG.INC"
 
-;* As POPCOUNT.INC has some subroutines to be added to the section set by the
+;* As PCPYSEED.INC has some subroutines to be added to the section set by the
 ;* main program, it is time to set it. To do that, we define a section an push
 ;* that to the section stack.
 
-SECTION "Included Codes", ROM0
+SECTION "Included Codes", ROM0[$6000]
 PUSHS
 
-INCLUDE "POPCOUNT.INC"
+INCLUDE "PCPYSEED.INC"
 
 
 ; ******************************************************************************
@@ -449,11 +449,11 @@ clean_hram:
 
 ;* Note that HL=$0000 and B=$00 after clean_ram
 
-    ld h, $C0                   ; 2|2
-    ld l, $00                   ; 2|2
-    ld b, a                     ; 1|1
-    inc b                       ; 1|1
-    ld c, $00                   ; 2|2
+    ;ld h, $C0                   ; 2|2
+    ;ld l, $00                   ; 2|2
+    ;ld b, a                     ; 1|1
+    ;inc b                       ; 1|1
+    ;ld c, $00                   ; 2|2
     ExtractWRAMTo32bit          ; ?|?   too much, should be fastened
 
 
