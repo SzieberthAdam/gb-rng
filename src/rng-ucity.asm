@@ -1,5 +1,5 @@
 ;* RNG-UCITY
-;* Copyright (c) 2018 Szieberth Ádám
+;* (Adapted) Copyright (c) 2019 Szieberth Ádám
 
 ;* Derived from the µCity 1.2 ([UCITY]) source code with the following LICENSE
 ;* which also applies to this file:
@@ -27,8 +27,7 @@
 ;* ABSTRACT
 ;* =============================================================================
 
-;* This file contains the random number generator of the game named 2048-gb. The
-;* game has a very simple RNG which might be enough for its purpose.
+;* This file contains the random number generator of the game named µCity.
 
 
 ;* =============================================================================
@@ -103,14 +102,7 @@ _Random:
 
 SECTION "RNG", ROM0
 
-;* We have a nice random seed value in $DF00 so we will copy that to a fixed
-;* HRAM address: GBRNG_SHORTSEED_START.
-
-random_ptr EQU GBRNG_SHORTSEED_START
-
 rand_init::
-    ld a, [GBRNG_SEED_START]    ; 3|4
-    ld [random_ptr], a          ; 2|3   LDH
     ret                         ; 1|4
 
 
@@ -124,21 +116,22 @@ rand_init::
 ;* seed value.
 
 rand::
-    ld hl, random_ptr           ; 2|3   LDH
+    ld hl, GBRNG_RAMSEED        ; 3|4
     ld l, [hl]                  ; 1|2   low byte of the random table address
-    ld h, _Random >> 8          ; 2|4   high byte of the random table address
+    ld h, _Random >> 8          ; 2|2   high byte of the random table address
 
-    ld a, [rDIV]                ; 2|3   LDH
+    ld a, [rDIV]                ; 2|2   LDH
     xor a, [hl]                 ; 1|2   XOR with the table value
 
     inc l                       ; 1|1   sets the address to the next table value
     add a, [hl]                 ; 1|2   ADD the next table value
 
-    ld hl, random_ptr           ; 2|3   LDH
+    ld hl, GBRNG_RAMSEED        ; 3|4
     ld [hl], a                  ; 1|2   set the random value the new seed value
 
     ret                         ; 1|4
 
+                                ; 16|25 TOTAL
 
 ;* =============================================================================
 ;* REMARKS
@@ -151,7 +144,10 @@ rand::
 
 ;* I can not exclude the possibility that I made a mistake with the migration of
 ;* AntoniND's code despite it is identical except for the initial seed
-;* calculation. However if I did it right then this implies a serious bug in it.
+;* calculation. However if I did it right then this might be a bug in it.
+
+;* Note that µCity do not update the seed with user imputs.
+
 ;* Not recommended.
 
 

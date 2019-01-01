@@ -1,5 +1,5 @@
 ;* RNG-NULL
-;* Copyright (c) 2018 Szieberth Ádám
+;* Copyright (c) 2019 Szieberth Ádám
 ;* 0BSD License (see LICENSE file for more info)
 
 
@@ -7,9 +7,8 @@
 ;* ABSTRACT
 ;* =============================================================================
 
-;* This file contains no random number generator. It simply yields the 256 bytes
-;* of the random seed area prepared by the GB-RNG main file ($DF00--$DFFF). Once
-;* done with that, it keeps yielding zeroes.
+;* This file contains no random number generator. It simply echoes and thus
+;* retains the the bytes of the result area, the initial bytes of the RAM.
 
 
 ;* =============================================================================
@@ -30,7 +29,7 @@ INCLUDE "GBRNG.INC"
 SECTION "RNG", ROM0
 
 rand_init::
-    ld hl, GBRNG_SEED_START     ; 3|3
+    ld hl, GBRNG_RESULT_START   ; 3|3
     ret                         ; 1|4
 
 ;* =============================================================================
@@ -42,12 +41,12 @@ rand_init::
 
 rand::
     ld a, h                     ; 1|1
-    cp GBRNG_SEED_STOP >> 8     ; 2|2
-    jr nc, .yield_null          ; 2|2/3 NC: GBRNG_SEED_STOP_Hi <= H
+    cp GBRNG_RESULT_STOP >> 8   ; 2|2
+    jr nc, .yield_null          ; 2|2/3 NC: GBRNG_RESULT_STOP_Hi <= H
     jr nz, .yield_bc            ; 2|2/3
     ld a, l                     ; 1|1
-    cp GBRNG_SEED_STOP & $FF    ; 2|2
-    jr nc, .yield_null          ; 2|2/3 NC: GBRNG_SEED_STOP <= HL
+    cp GBRNG_RESULT_STOP & $FF  ; 2|2
+    jr nc, .yield_null          ; 2|2/3 NC: GBRNG_RESULT_STOP <= HL
 .yield_bc
     ld a, [hl+]                 ; 1|2
     ret                         ; 1|4

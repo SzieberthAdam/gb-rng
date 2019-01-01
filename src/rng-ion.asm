@@ -1,5 +1,5 @@
 ;* RNG-ION
-;* Copyright (c) 2018 Szieberth Ádám
+;* Copyright (c) 2019 Szieberth Ádám
 
 
 ;* =============================================================================
@@ -63,16 +63,7 @@ INCLUDE "GBRNG.INC"
 
 SECTION "RNG", ROM0
 
-;* This RNG requires two bytes of random seed. We have 256 bytes at startup
-;* starting from address $DF00 so we pick the forst two bytes.
-
-randData EQU GBRNG_SHORTSEED_START
-
 rand_init::
-    ld a, [GBRNG_SEED_START]    ; 3|4
-    ld [randData], a            ; 2|3   LDH
-    ld a, [GBRNG_SEED_START+1]  ; 3|4
-    ld [randData+1], a          ; 2|3   LDH
     ret                         ; 1|4
 
 
@@ -80,18 +71,13 @@ rand_init::
 ;* RANDOM NUMBER GENERATOR
 ;* =============================================================================
 
-;* The seed value determines which value of the table below gets XOR'ed with the
-;* divider register value. Thereafter the next value of the table is added to
-;* the result and this new value is the random value produced and also the new
-;* seed value.
-
 rand::
-    ld a, [randData]            ; 2|3   LDH
+    ld a, [GBRNG_RAMSEED]       ; 2|2   LDH
     ld h, a                     ; 1|1
-    ld a, [randData+1]          ; 2|3   LDH
+    ld a, [GBRNG_RAMSEED+1]     ; 2|2   LDH
     ld l, a                     ; 1|1
 
-    ld a, [rDIV]                ; 2|3   LDH
+    ld a, [rDIV]                ; 2|2   LDH
 
     ld d, a                     ; 1|1
     ld e, [hl]                  ; 1|2   $00 / $FF most of the time (see below)
@@ -101,22 +87,23 @@ rand::
 
     ld b, a                     ; 1|1
     ld a, h                     ; 1|1
-    ld [randData], a            ; 2|3   LDH
+    ld [GBRNG_RAMSEED], a       ; 2|2   LDH
     ld a, l                     ; 1|1
-    ld [randData+1], a          ; 2|3   LDH
+    ld [GBRNG_RAMSEED+1], a     ; 2|2   LDH
     ld a, b                     ; 1|1
 
     ret                         ; 1|4
 
+                                ; 22|27 TOTAL (26|31 if ramseed in WRAM)
 
 ;* =============================================================================
 ;* REMARKS
 ;* =============================================================================
 
 ;* I am not familiar with the memory map of the TI-83 but this code is surely
-;* not fit for the GB. The "ld e, [hl]" instruction will load $00 or $FF into E
-;* most of the time. Moreover, certain areas of the GB memory are marked as not
-;* usable so it would be recommended to not even read in those locations.
+;* not fit well for the GB. The "ld e, [hl]" instruction will load $00 or $FF
+;* into E most of the time. Moreover, certain areas of the GB memory are marked
+;* as not usable so it would be recommended to not even read in those locations.
 
 ;* Still, for the first look this RNG seems an acceptable one for a not
 ;* seriously RNG dependant game.

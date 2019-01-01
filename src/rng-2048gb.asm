@@ -1,5 +1,5 @@
 ;* RNG-2048GB
-;* Copyright (c) 2018 Szieberth Ádám
+;* (Adapted) Copyright (c) 2019 Szieberth Ádám
 
 ;* Derived from the 2048-gb ([2048-GB]) source code with the following LICENSE
 ;* which also applies to this file if anyone thinks that a license can be
@@ -32,8 +32,12 @@
 ;* ABSTRACT
 ;* =============================================================================
 
-;* This file contains the random number generator of the game named 2048-gb. The
-;* game has a very simple RNG which might be enough for its purpose.
+;* This file contains the random number generator of the game named 2048-gb. It
+;* simply XOR's the one byte seed with the Divider Register value. In 2048-gb,
+;* the routine is called by the Vblank handler and when new tile is needed,
+;* basically after randomly timed user inputs. For games which require only a
+;* single byte of randomness at a time, it might be a good choice as a RNG can
+;* not get more plain than this.
 
 
 ;* =============================================================================
@@ -62,15 +66,9 @@ INCLUDE "GBRNG.INC"
 ;*     pop af
 ;*     ld [H_RNG1], a
 
-H_RNG1 EQU GBRNG_SHORTSEED_START
-
 SECTION "RNG", ROM0
 
-;* We have a nice random seed value in $DF00 so we copy that to H_RNG1:
-
 rand_init::
-    ld a, [GBRNG_SEED_START]    ; 3|4
-    ld [H_RNG1], a              ; 2|3   LDH
     ret                         ; 1|4
 
 
@@ -82,13 +80,14 @@ rand_init::
 ;* register.
 
 rand::
-    ld a, [rDIV]                ; 2|3   LDH
+    ld a, [rDIV]                ; 2|2   LDH
     ld b, a                     ; 1|1
-    ld a, [H_RNG1]              ; 2|3   LDH
+    ld a, [GBRNG_RAMSEED]       ; 2|2   LDH
     xor a, b                    ; 1|1
-    ld [H_RNG1], a              ; 2|3   LDH
+    ld [GBRNG_RAMSEED], a       ; 2|2   LDH
     ret                         ; 1|4
 
+                                ; 9|12  TOTAL (11|14 if ramseed in WRAM)
 
 ;* =============================================================================
 ;* REMARKS
@@ -96,7 +95,14 @@ rand::
 
 ;* This RNG is obviously a week one. There are visible visual patterns in the
 ;* generated stream. For instance values at the 2nd, 6th, and 10th positions are
-;* always identical. Not recommended.
+;* always identical.
+
+;* However, this RNG is not designed to produce long streams. Moreover it should
+;* be only used to get a single byte or less of randomness. Some games may not
+;* require more. As it is very lightweight, I recommended to call the routine
+;* in both the Vblank and the Joypad interrupt handler. If the game has a title
+;* screen, the button press which moves the game forward could produce a better
+;* initial seed than a picked byte from the RAM.
 
 
 ;* =============================================================================
