@@ -441,20 +441,14 @@ clean_hram:
 
 ;* Now we prepare some seed for optional use by the RNG. We go for a popcount
 ;* parity extraction: every 256 ($100) bytes of ram yields a bit of randomness.
+
 ;* "Popcount parity over a large buffer is about as random as you can get."
 ;* [GBD.PPAR]
 
 ;* There is a predefined macro for this job in popcount.inc named
 ;* ExtractWRAMTo32bit.
 
-;* Note that HL=$0000 and B=$00 after clean_ram
-
-    ;ld h, $C0                   ; 2|2
-    ;ld l, $00                   ; 2|2
-    ;ld b, a                     ; 1|1
-    ;inc b                       ; 1|1
-    ;ld c, $00                   ; 2|2
-    ExtractWRAMTo32bit          ; ?|?   too much, should be fastened
+    ExtractWRAMTo32bit          ; 533|106709
 
 
 ;* Generate Random Bytes

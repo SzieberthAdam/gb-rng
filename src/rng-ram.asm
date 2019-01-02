@@ -1,4 +1,4 @@
-;* RNG-NULL
+;* RNG-RAM
 ;* Copyright (c) 2019 Szieberth Ádám
 ;* 0BSD License (see LICENSE file for more info)
 
