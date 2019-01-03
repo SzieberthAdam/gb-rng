@@ -98,11 +98,9 @@ rand::
 ;* always identical.
 
 ;* However, this RNG is not designed to produce long streams. Moreover it should
-;* be only used to get a single byte or less of randomness. Some games may not
-;* require more. As it is very lightweight, I recommended to call the routine
-;* in both the Vblank and the Joypad interrupt handler. If the game has a title
-;* screen, the button press which moves the game forward could produce a better
-;* initial seed than a picked byte from the RAM.
+;* be only used to get a single byte or less of randomness after a user input.
+;* This might fit for some games. Use the least significant bits if less than a
+;* byte is enough.
 
 
 ;* =============================================================================

@@ -34,7 +34,6 @@
 ;*         pop     de
 ;*         pop     hl
 ;*         ret
-;*
 ;* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;* "randData here must be a 2 byte seed located in ram. While this is a fast
 ;* generator, it's generally not considered very good in terms of randomness."
@@ -105,11 +104,14 @@ rand::
 ;* into E most of the time. Moreover, certain areas of the GB memory are marked
 ;* as not usable so it would be recommended to not even read in those locations.
 
-;* Still, for the first look this RNG seems an acceptable one for a not
-;* seriously RNG dependant game.
+;* This RNG seems too esoteric with its random memory address pick. It might be
+;* tempting to choose exactly because of this silly attempt to be closer to true
+;* randomness.
 
-;* It seems that identical tiles tend to appear close to each other here and
-;* there too often but. Might be acceptable.
+;* The tests I made show now reason yet to reject its use. However, I would not
+;* recommend it until I can not do a full diehard test on the given stream. But
+;* it would be hard to recommend such a weird RNG even with good diehard
+;* results, as we can always suspect some flaws undetected.
 
 
 ;* =============================================================================
