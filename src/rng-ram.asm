@@ -15,10 +15,6 @@
 ;* INCLUDES
 ;* =============================================================================
 
-;* HARDWARE.INC contains the 'Hardware Defines' for our program. This has
-;* address location labels for all of the GameBoy Hardware I/O registers. We can
-;* 'insert' this file into the present ASM file by using the assembler INCLUDE
-;* command:
 INCLUDE "GBRNG.INC"
 
 

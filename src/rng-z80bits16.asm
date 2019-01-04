@@ -36,9 +36,13 @@
 ;*     ret
 ;* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-;* The "or a" in line 5 is replaced with a ccf for readability. The GB CPU has
-;* no 16bit SBC instruction so those has to get split. The GB counterpart uses
-;* A register so between "sbc a,0" and "sbc hd,de" A has to get saved in B.
+;* The GB CPU has no 16 bit SBC instruction so those has to get split. On top of
+;* that, the splitted parts clear A so A has to get chached in some places. Also
+;* the 16 bit values has to get loaded in two steps. Overall, these made the
+;* above code big and slow on the Game Boy CPU. The "ld l, 253 // or a" lines
+;* were replaced by "ld a, $FD // ld l, a // ccf" so that the value of L is
+;* prepared in A for the 16 bit sbc. The "or a" in the original code have no
+;* effect beyond clearing the carry flag.
 
 ;* =============================================================================
 ;* INCLUDES
@@ -69,9 +73,8 @@ rand::
 
     ld h, e                     ; 1|1
 
-    ld a, 253                   ; 2|2
+    ld a, $FD                   ; 2|2
     ld l, a                     ; 1|1
-
     ccf                         ; 1|1
 
     sbc a, e                    ; 1|1

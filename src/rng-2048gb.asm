@@ -1,5 +1,4 @@
 ;* RNG-2048GB
-;* (Adapted) Copyright (c) 2019 Szieberth Ádám
 
 ;* Derived from the 2048-gb ([2048-GB]) source code with the following LICENSE
 ;* which also applies to this file if anyone thinks that a license can be
@@ -27,6 +26,7 @@
 ;*    distribution.
 ;* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+;* GB-RNG adaptation and comments Copyright (c) 2019 Szieberth Ádám
 
 ;* =============================================================================
 ;* ABSTRACT
@@ -44,10 +44,6 @@
 ;* INCLUDES
 ;* =============================================================================
 
-;* HARDWARE.INC contains the 'Hardware Defines' for our program. This has
-;* address location labels for all of the GameBoy Hardware I/O registers. We can
-;* 'insert' this file into the present ASM file by using the assembler INCLUDE
-;* command:
 INCLUDE "HARDWARE.INC"
 INCLUDE "GBRNG.INC"
 

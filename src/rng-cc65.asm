@@ -1,5 +1,4 @@
-;* RNG-DAMYER
-;* (Adapted) Copyright (c) 2019 Szieberth Ádám
+;* RNG-CC65
 
 ;* Derived from the 240p-test-mini ([240ptm]) source code with the following
 ;* LICENSE which also applies to this file:
@@ -25,6 +24,8 @@
 ; 3. This notice may not be removed or altered from any source distribution.
 ;* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+;* GB-RNG adaptation and comments Copyright (c) 2019 Szieberth Ádám
+
 
 ;* =============================================================================
 ;* ABSTRACT
@@ -46,26 +47,31 @@ INCLUDE "GBRNG.INC"
 
 SECTION "RNG", ROM0
 
+;* For completeness I have kept the srand subroutine of the 240p-test-mini
+;* source code despite there is no need for it by the GB-RNG. Without it, the
+;* initialization could be done by just clearing GBRNG_RAMSEED+3 and
+;* GBRNG_RAMSEED+2.
+
 ;* "Sets the random seed to BC.
 ;* C expects startup code to behave as if srand(1) was called.
 ;* AHL trashed" [240ptm]
 srand::
-  ld hl,GBRNG_RAMSEED+3
-  xor a
-  ld [hl-],a
-  ld [hl-],a
-  ld a,b
-  ld [hl-],a
-  ld [hl],c
-  ret
+    ld hl, GBRNG_RAMSEED+3      ; 3|3
+    xor a                       ; 1|1
+    ld [hl-], a                 ; 1|2
+    ld [hl-], a                 ; 1|2
+    ld a, b                     ; 1|1
+    ld [hl-], a                 ; 1|2
+    ld [hl], c                  ; 1|2
+    ret                         ; 1|4
 
 
 rand_init::
-    ld a, [GBRNG_RAMSEED+1]     ; 3|4
-    ld b, a                     ; 1|1
-    ld a, [GBRNG_RAMSEED]       ; 3|4
-    ld c, a                     ; 1|1
-    call srand                  ; 3|6
+    ld a, [GBRNG_RAMSEED+1]     ; 3|4   set random seed to BC for srand()
+    ld b, a                     ; 1|1   ...
+    ld a, [GBRNG_RAMSEED]       ; 3|4   ...
+    ld c, a                     ; 1|1   ___
+    call srand                  ; 13|24
     ret                         ; 1|4
 
 
@@ -82,42 +88,42 @@ rand::
 
 ;* Load the current value to BCDE
 
-  ld hl, GBRNG_RAMSEED+3        ; 3|3
-  ld a, [hl-]                   ; 1|2
-  ld b, a                       ; 1|1
-  ld a, [hl-]                   ; 1|2
-  ld c, a                       ; 1|1
-  ld a, [hl-]                   ; 1|2
-  ld d, a                       ; 1|1
-  ld a, [hl]                    ; 1|2
-  ld e, a                       ; 1|1
+    ld hl, GBRNG_RAMSEED+3      ; 3|3
+    ld a, [hl-]                 ; 1|2
+    ld b, a                     ; 1|1
+    ld a, [hl-]                 ; 1|2
+    ld c, a                     ; 1|1
+    ld a, [hl-]                 ; 1|2
+    ld d, a                     ; 1|1
+    ld a, [hl]                  ; 1|2
+    ld e, a                     ; 1|1
 
 ;* Multiply by 0x01010101
 
-  add a, d                      ; 1|1
-  ld d, a                       ; 1|1
-  adc a, c                      ; 1|1
-  ld c, a                       ; 1|1
-  adc a, b                      ; 1|1
-  ld b, a                       ; 1|1
+    add a, d                    ; 1|1
+    ld d, a                     ; 1|1
+    adc a, c                    ; 1|1
+    ld c, a                     ; 1|1
+    adc a, b                    ; 1|1
+    ld b, a                     ; 1|1
 
 ;* Add 0x31415927 and write back
 
-  ld a, e                       ; 1|1
-  add a, $27                    ; 2|2
-  ld [hl+], a                   ; 1|2
-  ld a, d                       ; 1|1
-  adc a, $59                    ; 2|2
-  ld [hl+], a                   ; 1|2
-  ld a, c                       ; 1|1
-  adc a, $41                    ; 2|2
-  ld [hl+], a                   ; 1|2
-  ld c, a                       ; 1|1
-  ld a, b                       ; 1|1
-  adc a, $31                    ; 2|2
-  ld [hl], a                    ; 1|2
-  ld b, a                       ; 1|1
-  ret                           ; 1|4
+    ld a, e                     ; 1|1
+    add a, $27                  ; 2|2
+    ld [hl+], a                 ; 1|2
+    ld a, d                     ; 1|1
+    adc a, $59                  ; 2|2
+    ld [hl+], a                 ; 1|2
+    ld a, c                     ; 1|1
+    adc a, $41                  ; 2|2
+    ld [hl+], a                 ; 1|2
+    ld c, a                     ; 1|1
+    ld a, b                     ; 1|1
+    adc a, $31                  ; 2|2
+    ld [hl], a                  ; 1|2
+    ld b, a                     ; 1|1
+    ret                         ; 1|4
 
                                 ; 36|47 TOTAL
 

@@ -1,5 +1,6 @@
 ;* RNG-Z80BITS8
 ;* Copyright (c) 2019 Szieberth Ádám
+;* 0BSD License (see LICENSE file for more info)
 
 
 ;* =============================================================================
@@ -35,12 +36,12 @@ rand_init::
 ;* =============================================================================
 
 rand::
-    ld a, [GBRNG_RAMSEED]       ; 1|2
-    ld b, a                     ; 1|1
-    add a, a                    ; 1|1
-    add a, a                    ; 1|1
-    add a, b                    ; 1|1
-    inc a                       ; 1|1   another possibility is ADD A,7
+    ld a, [GBRNG_RAMSEED]       ; 1|2   A = N
+    ld b, a                     ; 1|1   B = N
+    add a, a                    ; 1|1   A = 2 * N
+    add a, a                    ; 1|1   A = 4 * N
+    add a, b                    ; 1|1   A = 5 * N
+    inc a                       ; 1|1   A = 5 * N + 1 (alternatively "add a, 7")
     ld [GBRNG_RAMSEED], a       ; 1|2
   ret                           ; 1|4
 

@@ -1,5 +1,6 @@
 ;* RNG-MURPHY
 ;* Copyright (c) 2019 Szieberth Ádám
+;* 0BSD License (see LICENSE file for more info)
 
 
 ;* =============================================================================
@@ -50,7 +51,7 @@ rand::
     add a, a                    ; 1|1   A = 8 * N
     add a, c                    ; 1|1   A = 12 * N
     add a, b                    ; 1|1   A = 13 * N
-    inc a                       ; 1|1   another possibility is ADD A,7
+    inc a                       ; 1|1   A = 13 * N + 1
     ld [GBRNG_RAMSEED], a       ; 1|2
   ret                           ; 1|4
 
