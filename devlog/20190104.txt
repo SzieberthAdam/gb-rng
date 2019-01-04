@@ -1,0 +1,34 @@
+GB-RNG ON HIATUS                                      2018-12-29
+================                                      2019-01-04
+
+After I got a little familiar with the various pseudorandom num‐
+ber generators  I realized that my upcoming game can not use any
+of those.  ven by the RNG with the longest period  I can not ex‐
+cept to be able to draw any of the possible  start states of the
+game wich requires 227 bits of randomness according to my calcu‐
+lation.
+
+What I need instead is randomness extraction from the Game Boy's
+initial RAM state. I know that the initial values in the RAM are
+affected by unknown conditions like hardware models,  revisions,
+room temperatures, and maybe many others. [GBD.UIRAM] However, I
+see them toghether describing  the state of the console when you
+turn it on and I an not frustrated by not knowing how they work.
+
+Thus, I will go for a popcount parity extraction and I will make
+my life easier  by generating 32 bytes out of the  8192 bytes of
+the WRAM. That means that the parity of 256 bits contributes one
+one bit to my seed. Instead of worrying about that being too few
+I see a golden path between true randomness and the state of the
+console and I am pretty excited about the future results.
+
+As  I do not want to force the user to turn the console off when
+unsatisfied  with the start state of the game,  the excess bytes
+are for a good use.  Once the game starts  the user will produce
+more entropy for the possible next draw.
+
+So I leave this project alone for now but maybe not forever as I
+really liked it and I learned a lot from it and about RNGs.
+
+
+[GBD.UIRAM] ISSOtm about the uninintialized RAM state @ gbdev   https://discordapp.com/channels/303217943234215948/303217943234215948/528876451521363968
