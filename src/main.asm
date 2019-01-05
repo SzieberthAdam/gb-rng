@@ -456,10 +456,15 @@ generate_seed:
     ld [de], a                  ; 1|2
     ld a, h                     ; 1|1
     cp a, $E0                   ; 2|2
-    jr z, .done                 ; 2|2/3
+
+    jr z, .done                 ; 2|8×3-7
+
+                                ;  |7×..
     inc de                      ; 1|2
     jr .repeat                  ; 2|3
 .done
+                                ; 22|265035 TOTAL
+                                ;       265035/1048576 s ≈ 0.252757 s
 
 
 ;* Generate Random Bytes
