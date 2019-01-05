@@ -46,8 +46,7 @@ popcnt_of_a:
 ; @return flags C reset, Z reset/set depending on the popcount
 popcnt_of_data:
     push de                     ; 1|4   will store the popcount value
-    ld d, 0                     ; 2|2   ...
-    ld e, 0                     ; 2|2   ___
+    ld de, 0                    ; 3|3   ___
     inc b                       ; 1|1
     inc c                       ; 1|1
 .repeat

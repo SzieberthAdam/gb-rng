@@ -52,26 +52,29 @@ SECTION "RNG", ROM0
 ;* initialization could be done by just clearing GBRNG_RAMSEED+3 and
 ;* GBRNG_RAMSEED+2.
 
-;* "Sets the random seed to BC.
-;* C expects startup code to behave as if srand(1) was called.
-;* AHL trashed" [240ptm]
-srand::
-    ld hl, GBRNG_RAMSEED+3      ; 3|3
-    xor a                       ; 1|1
-    ld [hl-], a                 ; 1|2
-    ld [hl-], a                 ; 1|2
-    ld a, b                     ; 1|1
-    ld [hl-], a                 ; 1|2
-    ld [hl], c                  ; 1|2
-    ret                         ; 1|4
-
-
 rand_init::
     ld a, [GBRNG_RAMSEED+1]     ; 3|4   set random seed to BC for srand()
     ld b, a                     ; 1|1   ...
     ld a, [GBRNG_RAMSEED]       ; 3|4   ...
     ld c, a                     ; 1|1   ___
-    call srand                  ; 13|24
+
+;* "Sets the random seed to BC.
+;* C expects startup code to behave as if srand(1) was called.
+;* AHL trashed" [240ptm]
+srand::
+    ld hl, GBRNG_RAMSEED+3      ; 3|3
+
+;* Damian Yerrick commented the next three lines on gbdev:
+;* "The part about zeroing the high bytes of the seed is just there to make it
+;* conform to the C ABI used on LR35902, which has 16-bit int." [GBD.SEEDCL]
+
+    xor a                       ; 1|1
+    ld [hl-], a                 ; 1|2
+    ld [hl-], a                 ; 1|2
+
+    ld a, b                     ; 1|1
+    ld [hl-], a                 ; 1|2
+    ld [hl], c                  ; 1|2
     ret                         ; 1|4
 
 
@@ -143,3 +146,6 @@ rand::
 
 ;* [240ptm]     Damian Yerrick: 240p-test-mini (SOFTWARE)
 ;*              https://github.com/pinobatch/240p-test-mini
+
+;* [GBD.SEEDCL] Damian Yerrick about zeroing the high bytes @ gbdev
+;*              https://discordapp.com/channels/303217943234215948/490065800225488916/530802237295820832

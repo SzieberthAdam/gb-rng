@@ -46,9 +46,9 @@ def get_pcpy(data):
   return lobyte & 1
 
 
-def get_seed(data):
+def get_seed(data, seedlen):
   result = bytearray()
-  for bytedata in chunks(data, len(data)//4):
+  for bytedata in chunks(data, len(data)//seedlen):
     byte = 0
     for bitdata in  chunks(bytedata, len(bytedata)//8):
       pcpy = get_pcpy(bitdata)
@@ -68,14 +68,14 @@ def main():
     if 0 < i:
       print()
     print(dumpfname.stem)
-    seedfname = dumpfname.with_suffix(".seed")
+    seedfname = dumpfname.with_suffix(".postseed")
     if not seedfname.is_file():
       continue
     with dumpfname.open("rb") as f:
       dump = f.read()
     with seedfname.open("rb") as f:
       seed = f.read()
-    seed1 = get_seed(dump)
+    seed1 = get_seed(dump, seedlen=len(seed))
     if seed == seed1:
       print(f'[ OK ]    {hexstr(seed)}')
     else:
