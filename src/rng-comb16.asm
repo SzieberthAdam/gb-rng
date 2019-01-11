@@ -99,9 +99,9 @@ rand::
 ;* X[n+1] = (5 * X[n] + 1) mod 65535
 
 .lcg                            ;
-    ld a, [GBRNG_RAMSEED]       ; 2|2   LDH
+    ld a, [GBRNG_RAMSEED]       ; 2|3   LDH
     ld h, a                     ; 1|1
-    ld a, [GBRNG_RAMSEED+1]     ; 2|2   LDH
+    ld a, [GBRNG_RAMSEED+1]     ; 2|3   LDH
     ld l, a                     ; 1|1
 
     ld b, h                     ; 1|1
@@ -112,9 +112,9 @@ rand::
     inc l                       ; 1|1
 
     ld a, l                     ; 1|1
-    ld [GBRNG_RAMSEED+1], a     ; 2|2   LDH
+    ld [GBRNG_RAMSEED+1], a     ; 2|3   LDH
     ld a, h                     ; 1|1
-    ld [GBRNG_RAMSEED], a       ; 2|2   LDH
+    ld [GBRNG_RAMSEED], a       ; 2|3   LDH
 
 ;* The LFSR ([NWI.LFSR]) is a Galois 16 bit (stages) right direction LFSR
 ;* ([W.GLFSR]) with polynomial X^16 + X^14 + X^13 + X^11 + 1 which has the $B400
@@ -122,9 +122,9 @@ rand::
 ;* so the toggle mask becomes $002D.
 
 .lfsr
-    ld a, [GBRNG_RAMSEED+2]     ; 2|2   LDH
+    ld a, [GBRNG_RAMSEED+2]     ; 2|3   LDH
     ld h, a                     ; 1|1
-    ld a, [GBRNG_RAMSEED+3]     ; 2|2   LDH
+    ld a, [GBRNG_RAMSEED+3]     ; 2|3   LDH
     ld l, a                     ; 1|1
 
     add hl, hl                  ; 1|2   ≡ sla hl (output bit=MSB= -> carry flag)
@@ -133,9 +133,9 @@ rand::
     xor a, l                    ; 1|1   if output bit is 1, apply toggle mask
     ld l, a                     ; 1|1
 
-    ld [GBRNG_RAMSEED+3], a     ; 2|2   LDH
+    ld [GBRNG_RAMSEED+3], a     ; 2|3   LDH
     ld a, h                     ; 1|1
-    ld [GBRNG_RAMSEED+2], a     ; 2|2   LDH
+    ld [GBRNG_RAMSEED+2], a     ; 2|3   LDH
 
 ;* Now we add the result of the LCG to the LFSR. As BC holds the previous state
 ;* of the LCG, we can do that instantly without loads.
@@ -152,7 +152,7 @@ rand::
 
     ret                         ; 1|4
 
-                                ; 38|46 TOTAL (46|54 if ramseed in WRAM)
+                                ; 38|54 TOTAL (46|62 if ramseed in WRAM)
 
 ;* Note that GB-RNG only takes the value from A.
 
@@ -173,7 +173,7 @@ rand::
 ;* 65536 and 65535 are coprime, then the overall period of the generator is
 ;* 65535*65536, which is over 4 billion." [WTI.RAND]
 
-;* This RNG has the same size as the cc65 (LCG) but that LCG is a lot more
+;* This RNG has about the same size as the cc65 (LCG) but that LCG is a lot more
 ;* sophisticated than the one we use here. "The opinions on combination
 ;* generators are rather mixed. Marsaglia is a strong proponent of these types
 ;* of generators [...], on the other hand, states, 'Combination generators are

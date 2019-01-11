@@ -116,7 +116,7 @@ rand::
     ld l, [hl]                  ; 1|2   low byte of the random table address
     ld h, _Random >> 8          ; 2|2   high byte of the random table address
 
-    ld a, [rDIV]                ; 2|2   LDH
+    ld a, [rDIV]                ; 2|3   LDH
     xor a, [hl]                 ; 1|2   XOR with the table value
 
     inc l                       ; 1|1   sets the address to the next table value
@@ -127,7 +127,7 @@ rand::
 
     ret                         ; 1|4
 
-                                ; 16|25 TOTAL
+                                ; 16|26 TOTAL
 
 ;* =============================================================================
 ;* REMARKS

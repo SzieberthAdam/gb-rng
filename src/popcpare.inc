@@ -41,7 +41,7 @@ extract_byte_from_data:
 .prepare_feed_counter           ;  |(8-K)×..
     push bc                     ; 1|4
     ld a, b                     ; 1|1   start preparing the feed counter
-    and a, %00011111            ; 2|2   bottom 5 bits goes to the byte caounter
+    and a, %00011111            ; 2|2   bottom 5 bits goes to the byte counter
     ld b, a                     ; 1|1   now the bit counter is prepared
 .rept_with_this_bit             ;  |(8-K)×N×..
     ld a, [hl+]                 ; 1|2   loads the next byte

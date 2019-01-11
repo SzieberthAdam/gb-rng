@@ -62,7 +62,7 @@ INCLUDE "GBRNG.INC"
 ;*     pop af
 ;*     ld [H_RNG1], a
 
-SECTION "RNG", ROM0
+SECTION "RNG", ROM0,ALIGN[12]
 
 rand_init::
     ret                         ; 1|4
@@ -76,14 +76,14 @@ rand_init::
 ;* register.
 
 rand::
-    ld a, [rDIV]                ; 2|2   LDH
+    ld a, [rDIV]                ; 2|3   LDH
     ld b, a                     ; 1|1
-    ld a, [GBRNG_RAMSEED]       ; 2|2   LDH
+    ld a, [GBRNG_RAMSEED]       ; 2|3   LDH
     xor a, b                    ; 1|1
-    ld [GBRNG_RAMSEED], a       ; 2|2   LDH
+    ld [GBRNG_RAMSEED], a       ; 2|3   LDH
     ret                         ; 1|4
 
-                                ; 9|12  TOTAL (11|14 if ramseed in WRAM)
+                                ; 9|15  TOTAL (11|17 if ramseed in WRAM)
 
 ;* =============================================================================
 ;* REMARKS

@@ -55,6 +55,7 @@ SECTION "Included Codes", ROM0
 PUSHS
 
 INCLUDE "POPCPARE.INC"
+INCLUDE "REGSTATE.INC"
 
 
 ; ******************************************************************************
@@ -145,8 +146,8 @@ SECTION "Interrupt Vectors", ROM0[$0040]
 ;* screen has drawn the final scanline. During this short time it’s safe to mess
 ;* with the video hardware and there won’t be interference." [AD.SKEL]
 SECTION	"LCD Display Vertical Blanking", ROM0[$0040]               ; Priority: 1
-    reti                        ; 1|4
-    DS 7                        ; 7|0
+    jp vblankhandler            ; 3|4
+    DS 5                        ; 5|0
 
 ;* "Status Interrupts from LCDC is fired when certain conditions are met in the
 ;* LCD Status register. Writing to the LCD Status Register, it’s possible to
@@ -353,24 +354,8 @@ main:
 ;* addresses (among other things) when we use the CALL command so the stack is
 ;* important to us. The CALL command is similar to executing a procedure in the
 ;* C & PASCAL languages. We shall set the stack to the top of high ram + 1.
-    ld sp, $FFFF		        ; 3|3   set the stack pointer to highest mem
+    ld sp, $ffff		        ; 3|3   set the stack pointer to highest mem
                                 ;       location we can use + 1
-
-;* Next we shall turn the Liquid Crystal Display (LCD) off so that we can copy
-;* data to video RAM. We can copy data to video RAM while the LCD is on but it
-;* is a little more difficult to do and takes a little bit longer. Video RAM is
-;* not always available for reading or writing when the LCD is on so it is
-;* easier to write to video RAM with the screen off.
-
-;* To turn off the LCD we do a CALL to the StopLCD subroutine at the bottom of
-;* this file. The reason we use a subroutine is because it takes more than just
-;* writing to a memory location to turn the LCD display off. The LCD display
-;* should be in Vertical Blank (or VBlank) before we turn the display off. Weird
-;* effects can occur if you don't wait until VBlank to do this and code written
-;* for the Super GameBoy won't work sometimes you try to turn of fthe LCD
-;* outside of VBlank.
-
-    call stoplcd                ; 3|6
 
 ;* Here we are going to setup the background tile palette so that the tiles
 ;* appear in the proper shades of grey. To do this, we need to write the value
@@ -382,41 +367,6 @@ main:
     ld a, %11100100 	        ; 2|2   background palette colors, from darkest
                                 ;       to lightest
     ld [rBGP], a		        ; 3|4
-
-
-;* Load tiles
-;* -----------------------------------------------------------------------------
-
-;* Now we load the CP437 characterset tiles into the background tiles area of
-;* the VRAM ($8000--$8FFF). To be able to write into the VRAM we have to wait
-;* for either the H-Blank (mode 0) or the V-Blank (mode 1) state. This means
-;* that before every copy operation we have to check the LCD STAT register
-;* (rSTAT/$FF41). The mode value sits on the bits 0 and 1. If we found that the
-;* mode is 2 (OAM Search) or 3 (Transfer) then we have to keep waiting.
-;* Technically we could access the VRAM during the 20 clocks long OAM Search but
-;* it would be dangerous as we write into the VRAM (8/12?) clocks later than we
-;* loaded the STAT value. Instead we use the 20 clocks of OAM Search as a safety
-;* zone to ensure that we have access to the VRAM at the time of our load
-;* operation, "ld [de], a".
-
-load_tiles:
-    ld hl, tile_data            ; 3|3   source address
-    ld de, $8000                ; 3|3   destination address (VRAM)
-    ld c, $90                   ; 2|2   cached high nibble of the address of the
-                                ;       end of destination area + 1 ($9000)
-.load_tile_data_loop
-.wait_for_vram
-    ld a, [rSTAT]               ; 3|4
-    and a, %00000010            ; 2|2   in mode 2 or 3
-    jr nz, .wait_for_vram       ; 2|2/3
-    ld a, [hl+]                 ; 1|2
-    ld [de], a                  ; 1|2   loads value to VRAM
-    inc de                      ; 1|2
-    ld a, d                     ; 1|1
-    cp a, c                     ; 1|1   here we test whether we reached $9000
-                                ;       we spare one clock per loop by using the
-                                ;       cached value rather than $90 explicitely
-    jr nz, .load_tile_data_loop ; 2|2/3
 
 
 ;* HRAM cleanup
@@ -466,68 +416,62 @@ generate_seed:
                                 ; 22|265035 TOTAL
                                 ;       265035/1048576 s ≈ 0.252757 s
 
+duplicate_ramseed:
+    ld hl, GBRNG_RAMSEED        ; 3|3
+    ld de, GBRNG_RAMSEED+8      ; 3|3
+    ld b, 8                     ; 2|2
+.loop
+    ld a, [hl+]                 ; 1|2
+	ld [de], a                  ; 1|2
+	inc	de                      ; 1|2
+    dec b                       ; 1|1
+    jr nz, .loop                ; 2|2/3
+
 
 ;* Generate Random Bytes
 ;* -----------------------------------------------------------------------------
 
-;* Now we fill the result area (GBRNG_RESULT_START--GBRNG_RESULT_STOP-1) with
-;* generated bytes. The RNG is run in a sandbox so it can use any registers
-;* without the need of the stack.
+;* Now we fill the result area (GBRNG_RES_START--GBRNG_RES_STOP-1) with
+;* generated bytes. The RNG will run in a sandbox which means that all registers
+;* are preserved for it including the F register.
+
+
+
+first_time_rand_init:
+
+    call rand_init              ; 3|6
+    DumpAllRegisters RNG_SBOX   ; 28|35
 
 generate_rand_data:
-    call rand_init              ; 3|6
-    push af                     ; 1|4   save RNG AF
-    push bc                     ; 1|4   save RNG BC
-    push hl                     ; 1|4   save RNG HL
-    ld hl, GBRNG_RESULT_START   ; 3|4   set HL to destination address
+
+    ld hl, GBRNG_RES_START      ; 3|4   set HL to destination address
+    DumpHL GBRNG_RES_HL         ; 6|6
+
+;* We also reset the divider register to uniformize the behaviour of the RNGs
+;* when recalled. Do not do that in the application as this weakens the RNG.
+
+    ld [rDIV], a                ; 2|2   reset the divider register
 .repeat
-    ld a, h                     ; 1|1   cache the destination address to [$FFCD]
-    ld [GBRNG_HLCACHE], a       ; 2|3   ...
-    ld a, l                     ; 1|1   ...
-    ld [GBRNG_HLCACHE+1], a     ; 2|3   ___
-    pop hl                      ; 1|3   load RNG HL
-    pop bc                      ; 1|3   load RNG BC
-    pop af                      ; 1|3   load RNG AF
-    call rand                   ; 3|6   A = random byte
-    push af                     ; 1|4   save RNG AF
-    push bc                     ; 1|4   save RNG BC
-    push hl                     ; 1|4   save RNG HL
-    ld b, a                     ; 1|1   B = random byte (cached)
-    ld a, [GBRNG_HLCACHE]       ; 2|3   load the destination address
-    ld h, a                     ; 1|1   ...
-    ld a, [GBRNG_HLCACHE+1]     ; 2|3   ...
-    ld l, a                     ; 1|1   ___
-    ld a, b                     ; 1|1
+    LoadAllRegisters RNG_SBOX   ; 27|40
+    call rand                   ; 3|6   random byte -> [RNG_SBOX]
+    DumpAllRegisters RNG_SBOX   ; 28|43
+
+    LoadHL GBRNG_RES_HL         ; 6|8
+    LoadA RNG_SBOX              ; 2|3
     ld [hl+], a                 ; 1|2   loads value to destination address
+    DumpHL GBRNG_RES_HL         ; 6|8
+
 .end_check                      ;       HL == $9A34; .done; .end_check_break
     ld a, h                     ; 1|1
-    cp GBRNG_RESULT_STOP >> 8   ; 2|2
+    cp GBRNG_RES_STOP >> 8      ; 2|2
     jr nz, .repeat              ; 2|2/3
     ld a, l                     ; 1|1
-    cp GBRNG_RESULT_STOP & $FF  ; 2|2
+    cp GBRNG_RES_STOP & $FF     ; 2|2
     jr nz, .repeat              ; 2|2/3
 .done
-    pop hl                      ; 1|3   load RNG HL at exit
-    pop bc                      ; 1|3   load RNG BC at exit
-    pop af                      ; 1|3   load RNG AF at exit
-.clear_dest_addr_bytes
-    xor a, a                    ; 1|1   A = 0
-    ld [GBRNG_HLCACHE], a       ; 2|3
-    ld [GBRNG_HLCACHE+1], a     ; 2|3
-
-;* Turn back the LCD
-;* -----------------------------------------------------------------------------
-
-;* Now we turn the LCD on. Parameters are explained in the I/O registers section
-;* of The GameBoy reference under I/O register LCDC.
-
-	ld a, LCDCF_ON |          \ ; 2|2
-          LCDCF_BG8000 |      \
-          LCDCF_BG9800 |      \
-          LCDCF_BGON |        \
-          LCDCF_OBJ16 |       \
-          LCDCF_OBJOFF
-	ld	[rLCDC], a              ; 2|2   LDH
+    xor a, a
+    ld [GBRNG_RES_HL], a       ; 2|3
+    ld [GBRNG_RES_HL+1], a     ; 2|3
 
 
 ;* Display 20×18 random numbers
@@ -554,7 +498,7 @@ generate_rand_data:
 ;* register to cache the random byte and the HL register fot the VRAM address.
 
 display_random_numbers:
-    ld bc, GBRNG_RESULT_START   ; 3|4   set HL to source (random area) address
+    ld bc, GBRNG_RES_START      ; 3|4   set HL to source (random area) address
     ld hl, $9800                ; 3|4   set HL to destination address
 .repeat
 .wait_for_vram
@@ -587,6 +531,49 @@ display_random_numbers:
 .done
 
 
+;* Load tiles
+;* -----------------------------------------------------------------------------
+
+;* Now we load the CP437 characterset tiles into the background tiles area of
+;* the VRAM ($8000--$8FFF). To be able to write into the VRAM we have to wait
+;* for either the H-Blank (mode 0) or the V-Blank (mode 1) state. This means
+;* that before every copy operation we have to check the LCD STAT register
+;* (rSTAT/$FF41). The mode value sits on the bits 0 and 1. If we found that the
+;* mode is 2 (OAM Search) or 3 (Transfer) then we have to keep waiting.
+;* Technically we could access the VRAM during the 20 clocks long OAM Search but
+;* it would be dangerous as we write into the VRAM (8/12?) clocks later than we
+;* loaded the STAT value. Instead we use the 20 clocks of OAM Search as a safety
+;* zone to ensure that we have access to the VRAM at the time of our load
+;* operation, "ld [de], a".
+
+load_tiles:
+    ld hl, tile_data            ; 3|3   source address
+    ld de, $8000                ; 3|3   destination address (VRAM)
+    ld c, $90                   ; 2|2   cached high nibble of the address of the
+                                ;       end of destination area + 1 ($9000)
+.load_tile_data_loop
+.wait_for_vram
+    ld a, [rSTAT]               ; 3|4
+    and a, %00000010            ; 2|2   in mode 2 or 3
+    jr nz, .wait_for_vram       ; 2|2/3
+    ld a, [hl+]                 ; 1|2
+    ld [de], a                  ; 1|2   loads value to VRAM
+    inc de                      ; 1|2
+    ld a, d                     ; 1|1
+    cp a, c                     ; 1|1   here we test whether we reached $9000
+                                ;       we spare one clock per loop by using the
+                                ;       cached value rather than $90 explicitely
+    jr nz, .load_tile_data_loop ; 2|2/3
+
+
+;*  Enable Interrupts
+;* -----------------------------------------------------------------------------
+
+    ei                          ; 1|1
+    ld a, %00000001             ; 2|2
+    ld [rIE], a                 ; 2|2
+
+
 ;* Endless Loop
 ;* -----------------------------------------------------------------------------
 
@@ -595,29 +582,86 @@ display_random_numbers:
 wait:
     halt                        ; 1|4
     nop                         ; 1|4
+
+;* Generate more random values if start is pressed.
+
+    ld a, [KEYNEW]              ; 2|3   LDH
+    and a, $08                  ; 2|2   start is pressed
+    jp nz, generate_rand_data   ; 3|4/3
+
     jr wait                     ; 2|12
 
 
 ;* Subroutines
 ;* -----------------------------------------------------------------------------
 
+
+vblankhandler:
+    push af
+    push bc
+    push de
+    push hl
+    call key                    ; 3|6
+    pop hl
+    pop de
+    pop bc
+    pop af
+    reti
+
+
+key::
+    ld a, [KEYNEW]              ; 2|3   LDH
+    ld [KEYOLD], a              ; 2|3   LDH
+    ld c, a                     ; 1|1   C = KEYOLD
+    ld a, $20                   ; 2|2   "Read U, D, L, R keys
+    ld [rP1], a                 ; 2|2   Port P14 ← LOW output
+    ld a, [rP1]                 ; 2|2   A Register ← Port P10-P13
+    ld a, [rP1]                 ; 2|2   Perform this operation twice" [GBPM]
+    cpl                         ; 1|1   complement the result (set bit: pressed)
+    and $0F                     ; 2|2   trim output bits
+    swap a                      ; 2|2   put direction keys in upper nibble
+    ld b, a                     ; 1|1   B = direction keys in the upper nibble
+    ld a, $10                   ; 2|2   "Reads keys A, B, SE, ST
+    ld [rP1], a                 ; 2|2   Port P15 ← LOW output
+    ld a, [rP1]                 ; 2|2   A Register ← Ports P10-P13
+    ld a, [rP1]                 ; 2|2   Perform this operation 6 times" [GBPM]
+    ld a, [rP1]                 ; 2|2   ...
+    ld a, [rP1]                 ; 2|2   ...
+    ld a, [rP1]                 ; 2|2   ...
+    ld a, [rP1]                 ; 2|2   ___
+    cpl                         ; 1|1   complement again
+    and $0F                     ; 2|2   trim output bits
+    or b                        ; 1|1   merge with direction keys
+    ld [KEYNEW], a              ; 2|3   LDH
+    ld b, a                     ; 1|1   B = KEYNEW
+    ld a, $30                   ; 2|2   "Port reset
+    ld [rP1], a                 ; 2|2   " [GBPM]
+    ret                         ; 1|4
+
+                                ; 47|53 TOTAL (50|56 if KEYNEW/KEYOLD in WRAM)
+
+
 ;* The following subroutine stops the LCD. During that state we have full access
 ;* to the video ram. Stopping the LCD is not trivial though as it must be done
 ;* during the Vblank period.
 
-stoplcd:
-    ld a, [rLCDC]               ; 2|2   LDH
+stoplcd::
+    ld a, [rLCDC]               ; 2|3   LDH
     rlca                        ; 1|1   put the LCDC high bit into the C flag
     ret nc                      ; 1|5/2 if screen is off already then exit
 .wait_for_vblank
-    ld a, [rLY]                 ; 2|2   LDH
+    ld a, [rLY]                 ; 2|3   LDH
     cp a, 145                   ; 2|2   Is display on scan line 145 yet?
     jr nz, .wait_for_vblank     ; 2|2/3
 .turn_off_lcd
-    ld a, [rLCDC]               ; 2|2   LDH
+    ld a, [rLCDC]               ; 2|3   LDH
     res 7, a                    ; 2|2   reset bit 7 of LCDC
-    ld [rLCDC], a               ; 2|2   LDH
+    ld [rLCDC], a               ; 2|3   LDH
     ret                         ; 1|4
+
+                                ; 17|x  TOTAL
+
+
 
 
 

@@ -43,7 +43,7 @@ rand_init::
 ;* =============================================================================
 
 rand::
-    ld a, [GBRNG_RAMSEED]       ; 1|2   A = N
+    ld a, [GBRNG_RAMSEED]       ; 2|3   LDH; A = N
     ld b, a                     ; 1|1   B = N
     add a, a                    ; 1|1   A = 2 * N
     add a, a                    ; 1|1   A = 4 * N
@@ -52,10 +52,10 @@ rand::
     add a, c                    ; 1|1   A = 12 * N
     add a, b                    ; 1|1   A = 13 * N
     inc a                       ; 1|1   A = 13 * N + 1
-    ld [GBRNG_RAMSEED], a       ; 1|2
+    ld [GBRNG_RAMSEED], a       ; 2|3   LDH
   ret                           ; 1|4
 
-                                ; 11|16 TOTAL
+                                ; 13|18 TOTAL (15|20 if ramseed in WRAM)
 
 ;* =============================================================================
 ;* REMARKS
