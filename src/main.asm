@@ -39,22 +39,24 @@
 ;* address location labels for all of the GameBoy Hardware I/O registers. We can
 ;* 'insert' this file into the present ASM file by using the assembler INCLUDE
 ;* command:
-
 INCLUDE "HARDWARE.INC"
 
-;* Among other constants, GBRNG.INC contains the address of the random seed
-;* which should be used by the RNG if it requires a seed.
-
+;* GBRNG.INC contains the constants of this software.
 INCLUDE "GBRNG.INC"
+
+;* RNG.INC contains the address of the random seed which should be used by the
+;* RNG if it requires a seed and we also need that address here.
+INCLUDE "RNG.INC"
 
 ;* As POPCPARE.INC has a subroutine to be added to the section set by the main
 ;* program, it is time to set it. To do that, we define a section an push that
 ;* to the section stack.
-
 SECTION "Included Codes", ROM0
 PUSHS
-
 INCLUDE "POPCPARE.INC"
+
+;* REGSTATE.INC is a macro package to dump and load register values. We will use
+;* that to let the RNG full access over all the registers for its own use.
 INCLUDE "REGSTATE.INC"
 
 
@@ -279,7 +281,7 @@ SECTION	"Maker Code", ROM0[$0144]
 ;*    In order to use Super Game Boy Functions, the Legacy Maker Code must be
 ;*    $33. [GBPM]
 SECTION	"SGB Support Code", ROM0[$0146]
-    DB	$00	                    ; 1|0
+    DB $00	                    ; 1|0
 
 ;* 8. Software Type (Cartridge Type): "Specifies which Memory Bank Controller
 ;*    (if any) is used in the cartridge, and if further external hardware exists
@@ -292,33 +294,33 @@ SECTION	"Software Type", ROM0[$0147]
 ;*    are listed in the second block of the "Cart related" section of
 ;*    HARDWARE.INC.
 SECTION	"ROM Size", ROM0[$0148]
-    DB	CART_ROM_256K           ; 1|0
+    DB CART_ROM_256K            ; 1|0
 
 ;* 10. External RAM Size: "Specifies the size of the external RAM in the
 ;*     cartridge (if any)." [PD] The valid values are listed in the third block
 ;*     of the "Cart related" section of HARDWARE.INC.
 SECTION	"External RAM Size", ROM0[$0149]
-    DB	CART_RAM_NONE           ; 1|0
+    DB CART_RAM_NONE            ; 1|0
 
 ;* 11. Destination Code: "Specifies if this version of the game is supposed to
 ;*     be sold in Japan, or anywhere else. Only two values are defined:" [PD]
 ;*     • $00: Japan
 ;*     • $01: All Others
 SECTION	"Destination Code", ROM0[$014A]
-    DB	$01                     ; 1|0
+    DB $01                      ; 1|0
 
 ;* 12. Legacy Maker Code: "Specifies the games company/publisher code in range
 ;*     $00--$FF." [PD] A value of $33 signalizes that the new Maker Code in
 ;*     header bytes $0144--$0145 is used instead. Note that Super GameBoy
 ;*     functions will not work if this value is not $33. [PD]
 SECTION	"Legacy Maker Code", ROM0[$014B]
-    DB	$33                     ; 1|0
+    DB $33                      ; 1|0
 
 ;* 13. Mask ROM Version N0.: "The mask ROM version number starts from $00 and
 ;*     increases by 1 for each revised version sent after starting production."
 ;*     [GBPM] Therefore this value is usually $00.
 SECTION	"Mask ROM Version N0.", ROM0[$014C]
-    DB	$00                     ; 1|0
+    DB $00                      ; 1|0
 
 ;* 14. Complement Check (Header Checksum): "After all the registration data has
 ;*     been entered ($0134--$014C), add $19 to the sum of the data stored at
@@ -328,7 +330,7 @@ SECTION	"Mask ROM Version N0.", ROM0[$014C]
 ;*     " [GBPM]
 ;*     We usually use RGBFIX (-v) to set this value for us, thus, set it to $00.
 SECTION	"Complement Check", ROM0[$014D]
-    DB	$00                     ; 1|0
+    DB $00                      ; 1|0
 
 ;* 15. Check Sum Hi and Lo (Global Checksum): "Contains a 16 bit checksum (upper
 ;*     byte first) across the whole cartridge ROM. Produced by adding all bytes
@@ -336,7 +338,8 @@ SECTION	"Complement Check", ROM0[$014D]
 ;*     verify this checksum." [PD]
 ;*     We usually use RGBFIX (-v) to set this value for us, thus, set it to $00.
 SECTION	"Check Sum Hi and Lo", ROM0[$014E]
-    DW	$0000                   ; 2|0
+    DW $0000                    ; 2|0
+
 
 
 ;* =============================================================================
@@ -438,29 +441,20 @@ duplicate_rngseed:
 
 
 first_time_rand_init:
-
     call rand_init              ; 3|6
-    DumpAllRegisters RNG_SBOX   ; 28|35
+    DumpAllRegisters RNGREGST   ; 28|35
 
 generate_rand_data:
-
     ld hl, GBRNG_RES_START      ; 3|4   set HL to destination address
     DumpHL GBRNG_RES_HL         ; 6|6
-
-;* We also reset the divider register to uniformize the behaviour of the RNGs
-;* when recalled. Do not do that in the application as this weakens the RNG.
-
-    ld [rDIV], a                ; 2|2   reset the divider register
 .repeat
-    LoadAllRegisters RNG_SBOX   ; 27|40
-    call rand                   ; 3|6   random byte -> [RNG_SBOX]
-    DumpAllRegisters RNG_SBOX   ; 28|43
-
+    LoadAllRegisters RNGREGST   ; 27|40
+    call rand                   ; 3|6   random byte -> [RNGREGST]
+    DumpAllRegisters RNGREGST   ; 28|43
     LoadHL GBRNG_RES_HL         ; 6|8
-    LoadA RNG_SBOX              ; 2|3
+    LoadA RNGREGST              ; 2|3
     ld [hl+], a                 ; 1|2   loads value to destination address
-    DumpHL GBRNG_RES_HL         ; 6|8
-
+    DumpHL GBRNG_RES_HL         ; 6|8   this also increments the fake rDIV
 .end_check                      ;       HL == $9A34; .done; .end_check_break
     ld a, h                     ; 1|1
     cp GBRNG_RES_STOP >> 8      ; 2|2

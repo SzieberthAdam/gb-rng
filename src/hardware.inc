@@ -1,3 +1,9 @@
+;* WARNING! This is a customized version of this file. Do not include it in your
+;* own projects! Get the latest from the following location:
+;*                   https://github.com/tobiasvl/hardware.inc
+;* As GB-RNG replaces the Divider register with a fake one, rDIV points to a
+;* HRAM address instead of $FF04.
+
 ;*
 ;* Gameboy Hardware definitions
 ;*
@@ -98,8 +104,10 @@ rSC EQU $FF02
 ; -- DIV ($FF04)
 ; -- Divider register (R/W)
 ; --
-rDIV EQU $FF04
+;rDIV EQU $FF04
 
+;* WARNING! The address below points to the fake divider register of GB-RNG!
+rDIV EQU $FFAF
 
 ; --
 ; -- TIMA ($FF05)
