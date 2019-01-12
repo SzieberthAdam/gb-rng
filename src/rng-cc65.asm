@@ -49,20 +49,19 @@ SECTION "RNG", ROM0
 
 ;* For completeness I have kept the srand subroutine of the 240p-test-mini
 ;* source code despite there is no need for it by the GB-RNG. Without it, the
-;* initialization could be done by just clearing GBRNG_RAMSEED+3 and
-;* GBRNG_RAMSEED+2.
+;* initialization could be done by just clearing RNGSEED+3 and RNGSEED+2.
 
 rand_init::
-    ld a, [GBRNG_RAMSEED+1]     ; 3|4   set random seed to BC for srand()
+    ld a, [RNGSEED+1]           ; 3|4   set random seed to BC for srand()
     ld b, a                     ; 1|1   ...
-    ld a, [GBRNG_RAMSEED]       ; 3|4   ...
+    ld a, [RNGSEED]             ; 3|4   ...
     ld c, a                     ; 1|1   ___
 
 ;* "Sets the random seed to BC.
 ;* C expects startup code to behave as if srand(1) was called.
 ;* AHL trashed" [240ptm]
 srand::
-    ld hl, GBRNG_RAMSEED+3      ; 3|3
+    ld hl, RNGSEED+3            ; 3|3
 
 ;* Damian Yerrick commented the next three lines on gbdev:
 ;* "The part about zeroing the high bytes of the seed is just there to make it
@@ -91,7 +90,7 @@ rand::
 
 ;* Load the current value to BCDE
 
-    ld hl, GBRNG_RAMSEED+3      ; 3|3
+    ld hl, RNGSEED+3            ; 3|3
     ld a, [hl-]                 ; 1|2
     ld b, a                     ; 1|1
     ld a, [hl-]                 ; 1|2

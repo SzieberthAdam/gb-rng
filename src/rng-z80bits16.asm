@@ -66,9 +66,9 @@ rand_init::
 ;* =============================================================================
 
 rand::
-    ld a, [GBRNG_RAMSEED+1]     ; 2|3   LDH
+    ld a, [RNGSEED+1]           ; 2|3   LDH
     ld e, a                     ; 1|1
-    ld a, [GBRNG_RAMSEED]       ; 2|3   LDH
+    ld a, [RNGSEED]             ; 2|3   LDH
     ld d, a                     ; 1|1
 
     ld h, e                     ; 1|1
@@ -110,12 +110,12 @@ rand::
     inc hl                      ; 1|1
 .rand
     ld a, h                     ; 1|1
-    ld [GBRNG_RAMSEED], a       ; 2|3   LDH
+    ld [RNGSEED], a             ; 2|3   LDH
     ld a, l                     ; 1|1
-    ld [GBRNG_RAMSEED+1], a     ; 2|3   LDH
+    ld [RNGSEED+1], a           ; 2|3   LDH
     ret                         ; 1|4
 
-                                ; 47|54  TOTAL (51|58 if ramseed in WRAM)
+                                ; 47|54  TOTAL (51|58 if RNGSEED in WRAM)
 
 
 ;* =============================================================================
@@ -126,7 +126,7 @@ rand::
 ;* me. While LCG / LFSR / XORShift RNGs are well documented and tested on
 ;* scientific level, there is no source of this RNG. I see no reason picking
 ;* this one over a LCG, especially as it seems that it can not be optimized for
-;* the GB CPU. 50 cycles seems too costly for me for what it does.
+;* the GB CPU. 54 cycles seems too costly for me for what it does.
 
 ;* Note that GB-RNG takes one bytes per call from the A register which holds the
 ;* low byte of the returned 16bit random number. I intuitively picked the low

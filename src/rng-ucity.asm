@@ -112,7 +112,7 @@ rand_init::
 ;* seed value.
 
 rand::
-    ld hl, GBRNG_RAMSEED        ; 3|4
+    ld hl, RNGSEED              ; 3|4
     ld l, [hl]                  ; 1|2   low byte of the random table address
     ld h, _Random >> 8          ; 2|2   high byte of the random table address
 
@@ -122,7 +122,7 @@ rand::
     inc l                       ; 1|1   sets the address to the next table value
     add a, [hl]                 ; 1|2   ADD the next table value
 
-    ld hl, GBRNG_RAMSEED        ; 3|4
+    ld hl, RNGSEED              ; 3|4
     ld [hl], a                  ; 1|2   set the random value the new seed value
 
     ret                         ; 1|4

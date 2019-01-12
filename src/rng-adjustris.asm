@@ -200,7 +200,7 @@ rand_init::
 ;* register.
 
 rand::
-    ld hl, GBRNG_RAMSEED        ; 3|3
+    ld hl, RNGSEED              ; 3|3
     ld a, [hl+]                 ; 1|2
     sra a                       ; 2|2
     sra a                       ; 2|2

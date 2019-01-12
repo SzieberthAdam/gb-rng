@@ -78,12 +78,12 @@ rand_init::
 rand::
     ld a, [rDIV]                ; 2|3   LDH
     ld b, a                     ; 1|1
-    ld a, [GBRNG_RAMSEED]       ; 2|3   LDH
+    ld a, [RNGSEED]             ; 2|3   LDH
     xor a, b                    ; 1|1
-    ld [GBRNG_RAMSEED], a       ; 2|3   LDH
+    ld [RNGSEED], a             ; 2|3   LDH
     ret                         ; 1|4
 
-                                ; 9|15  TOTAL (11|17 if ramseed in WRAM)
+                                ; 9|15  TOTAL (11|17 if RNGSEED in WRAM)
 
 ;* =============================================================================
 ;* REMARKS

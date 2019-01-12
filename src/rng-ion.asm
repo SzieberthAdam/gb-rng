@@ -68,9 +68,9 @@ rand_init::
 ;* =============================================================================
 
 rand::
-    ld a, [GBRNG_RAMSEED]       ; 2|3   LDH
+    ld a, [RNGSEED]             ; 2|3   LDH
     ld h, a                     ; 1|1
-    ld a, [GBRNG_RAMSEED+1]     ; 2|3   LDH
+    ld a, [RNGSEED+1]           ; 2|3   LDH
     ld l, a                     ; 1|1
 
     ld a, [rDIV]                ; 2|3   LDH
@@ -83,14 +83,14 @@ rand::
 
     ld b, a                     ; 1|1
     ld a, h                     ; 1|1
-    ld [GBRNG_RAMSEED], a       ; 2|3   LDH
+    ld [RNGSEED], a             ; 2|3   LDH
     ld a, l                     ; 1|1
-    ld [GBRNG_RAMSEED+1], a     ; 2|3   LDH
+    ld [RNGSEED+1], a           ; 2|3   LDH
     ld a, b                     ; 1|1
 
     ret                         ; 1|4
 
-                                ; 22|32 TOTAL (26|36 if ramseed in WRAM)
+                                ; 22|32 TOTAL (26|36 if RNGSEED in WRAM)
 
 ;* =============================================================================
 ;* REMARKS

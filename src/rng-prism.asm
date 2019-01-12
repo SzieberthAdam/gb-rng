@@ -39,7 +39,7 @@ INCLUDE "GBRNG.INC"
 SECTION "RNG", ROM0
 
 rand_init::
-    ld hl, GBRNG_RAMSEED        ; 3|3
+    ld hl, RNGSEED              ; 3|3
     ret                         ; 1|4
 
 ;* =============================================================================

@@ -73,7 +73,7 @@ SECTION "RNG", ROM0
 ;* I have to ensure that the second 16 bit value is nonzero.
 
 rand_init::
-    ld hl, GBRNG_RAMSEED+2      ; 3|3
+    ld hl, RNGSEED+2            ; 3|3
 .seed34
     ld a, [hl+]                 ; 1|2
     and a, a                    ; 1|1
@@ -99,9 +99,9 @@ rand::
 ;* X[n+1] = (5 * X[n] + 1) mod 65535
 
 .lcg                            ;
-    ld a, [GBRNG_RAMSEED]       ; 2|3   LDH
+    ld a, [RNGSEED]             ; 2|3   LDH
     ld h, a                     ; 1|1
-    ld a, [GBRNG_RAMSEED+1]     ; 2|3   LDH
+    ld a, [RNGSEED+1]           ; 2|3   LDH
     ld l, a                     ; 1|1
 
     ld b, h                     ; 1|1
@@ -112,9 +112,9 @@ rand::
     inc l                       ; 1|1
 
     ld a, l                     ; 1|1
-    ld [GBRNG_RAMSEED+1], a     ; 2|3   LDH
+    ld [RNGSEED+1], a           ; 2|3   LDH
     ld a, h                     ; 1|1
-    ld [GBRNG_RAMSEED], a       ; 2|3   LDH
+    ld [RNGSEED], a             ; 2|3   LDH
 
 ;* The LFSR ([NWI.LFSR]) is a Galois 16 bit (stages) right direction LFSR
 ;* ([W.GLFSR]) with polynomial X^16 + X^14 + X^13 + X^11 + 1 which has the $B400
@@ -122,9 +122,9 @@ rand::
 ;* so the toggle mask becomes $002D.
 
 .lfsr
-    ld a, [GBRNG_RAMSEED+2]     ; 2|3   LDH
+    ld a, [RNGSEED+2]           ; 2|3   LDH
     ld h, a                     ; 1|1
-    ld a, [GBRNG_RAMSEED+3]     ; 2|3   LDH
+    ld a, [RNGSEED+3]           ; 2|3   LDH
     ld l, a                     ; 1|1
 
     add hl, hl                  ; 1|2   ≡ sla hl (output bit=MSB= -> carry flag)
@@ -133,9 +133,9 @@ rand::
     xor a, l                    ; 1|1   if output bit is 1, apply toggle mask
     ld l, a                     ; 1|1
 
-    ld [GBRNG_RAMSEED+3], a     ; 2|3   LDH
+    ld [RNGSEED+3], a           ; 2|3   LDH
     ld a, h                     ; 1|1
-    ld [GBRNG_RAMSEED+2], a     ; 2|3   LDH
+    ld [RNGSEED+2], a           ; 2|3   LDH
 
 ;* Now we add the result of the LCG to the LFSR. As BC holds the previous state
 ;* of the LCG, we can do that instantly without loads.
@@ -152,7 +152,7 @@ rand::
 
     ret                         ; 1|4
 
-                                ; 38|54 TOTAL (46|62 if ramseed in WRAM)
+                                ; 38|54 TOTAL (46|62 if RNGSEED in WRAM)
 
 ;* Note that GB-RNG only takes the value from A.
 

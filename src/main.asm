@@ -396,7 +396,7 @@ clean_hram:
 ;* [GBD.PPAR]
 
 generate_seed:
-    ld de, GBRNG_RAMSEED        ; 3|3
+    ld de, RNGSEED              ; 3|3
     ld hl, $C000                ; 3|3ó
 .repeat                         ;  |8×..
     push de                     ; 1|4
@@ -416,9 +416,9 @@ generate_seed:
                                 ; 22|265035 TOTAL
                                 ;       265035/1048576 s ≈ 0.252757 s
 
-duplicate_ramseed:
-    ld hl, GBRNG_RAMSEED        ; 3|3
-    ld de, GBRNG_RAMSEED+8      ; 3|3
+duplicate_rngseed:
+    ld hl, RNGSEED              ; 3|3
+    ld de, RNGSEED+8            ; 3|3
     ld b, 8                     ; 2|2
 .loop
     ld a, [hl+]                 ; 1|2
