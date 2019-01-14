@@ -1,4 +1,4 @@
-;* POPCPARE.INC
+;* SR_POPCP.INC
 ;* Copyright (c) 2019 Szieberth Ádám
 ;* 0BSD License (see LICENSE file for more info)
 
@@ -14,6 +14,9 @@
 ;* =============================================================================
 ;* THE CODE
 ;* =============================================================================
+
+IF !DEF(SR_POPCP_INC)
+SR_POPCP_INC SET 1
 
 ;* Now we pop the section from the section stack as we will add the following
 ;* subroutine there.
@@ -124,3 +127,6 @@ extract_byte_from_data:
 
 ;* [GBD.PPARC]  ax6's popcount parity code @ gbdev
 ;*              https://discordapp.com/channels/303217943234215948/490065800225488916/530701954989686794
+
+
+ENDC ;SR_POPCP_INC

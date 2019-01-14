@@ -48,19 +48,19 @@ INCLUDE "GBRNG.INC"
 ;* RNG if it requires a seed and we also need that address here.
 INCLUDE "RNG.INC"
 
-;* As POPCPARE.INC has a subroutine to be added to the section set by the main
+;* As SR_POPCP.INC has a subroutine to be added to the section set by the main
 ;* program, it is time to set it. To do that, we define a section an push that
 ;* to the section stack.
 SECTION "Included Codes", ROM0
 PUSHS
-INCLUDE "POPCPARE.INC"
+INCLUDE "SR_POPCP.INC"
 
-;* REGSTATE.INC is a macro package to dump and load register values. We will use
+;* MO_REGI.INC is a macro package to dump and load register values. We will use
 ;* that to let the RNG full access over all the registers for its own use.
-INCLUDE "REGSTATE.INC"
+INCLUDE "MO_REGI.INC"
 
 ;* Now we include our rooms.
-INCLUDE "ROOM/INIT.INC"
+INCLUDE "GBRNGDIS.INC"
 
 
 ; ******************************************************************************
@@ -396,8 +396,11 @@ main:
 ;* last and $9AE0 the last. This let us quickly test for being in a row with a
 ;* random value map part which is specifically useful for this application.
 
-    ld a, 6*8                   ; 2|2
+    ld a, DISPTSCX*8            ; 2|2
+    ld [rSCX], a                ; 2|3
+    ld a, DISPTSCY*8            ; 2|2
     ld [rSCY], a                ; 2|3
+
 
 ;* HRAM cleanup
 ;* -----------------------------------------------------------------------------
@@ -458,10 +461,7 @@ duplicate_rngseed:
     jr nz, .loop                ; 2|2/3
 
 
-    ld a, $C0
-    ld [RANDMAPDISP], a
-    xor a, a
-    ld [RANDMAPDISP+1], a
+
 
 
 ;* Load tiles
@@ -516,10 +516,14 @@ load_tiles:
 
 
 
-
-    call clear_display
-
-
+    call randmap_init
+    call randmap_row0
+    call randmap_row1
+    call randmap_addrcol0
+    call randmap_addrcol1
+    call randmap_addrcol2
+    call randmap_addrcol3
+    call randmap_vals
 ;
 ;
 ;;* Generate Random Bytes

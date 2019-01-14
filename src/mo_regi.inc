@@ -1,4 +1,4 @@
-;* REGSTATE.INC
+;* MO_REGI.INC
 ;* Copyright (c) 2019 Szieberth Ádám
 ;* 0BSD License (see LICENSE file for more info)
 
@@ -13,6 +13,9 @@
 ;* =============================================================================
 ;* THE CODE
 ;* =============================================================================
+
+IF !DEF(MO_REGI_INC)
+MO_REGI_INC SET 1
 
 ;* DumpRegisters take eight optional a16 arguments to dump A, F, B, C, D, E, H,
 ;* and L register values respectively. To skip dumping a register, pass 0 as its
@@ -600,3 +603,6 @@ ENDM
 ;* increment HL both was which made them identical in terms of size and CPU
 ;* cycles. Thus we prefered the A from stack version as it retained A register
 ;* value if F register was also dumped.
+
+
+ENDC ;MO_REGI_INC
