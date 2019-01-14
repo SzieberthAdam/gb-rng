@@ -199,6 +199,27 @@ randmap_addrcol3:
     jr .repeat                  ; 2|3
 
 
+; This subroutine clears the random map area of the Random Map Display which is
+; the bottom right 16*16 tiles of the screen. As we are going to display 256
+; empty space (32) values, a single byte counter (and offset) will serve us
+; well.
+clear_randmap_vals:
+    ld hl, $9910                ; 3|4   start address
+    ld b, 32                    ; 2|2   B = space tile
+    ld c, 0                     ; 2|2   C = value counter/offset
+.repeat
+    WaitForBlanking             ; 6|?
+    ld a, b                     ; 1|1   A = space tile
+    ld [hl+], a                 ; 1|2   write space tile to BG map
+    inc c                       ; 1|1   C += 1
+    ret z                       ; 1|5/2 if C overflowed, we are done
+    ld a, c                     ; 1|1   A = value counter/offset
+    and a, $0F                  ; 1|1   if the low nibble is nonzero then we are
+    jr nz, .repeat              ; 2|3     not at the start of the next row
+    Add16 HL, 16                ; 8|8   otherwise, HL += 16
+    jr .repeat                  ; 2|3
+
+
 ; This subroutine draws the random map area of the Random Map Display which is
 ; the bottom right 16*16 tiles of the screen. As we are going to display 256
 ; values, a single byte counter (and offset) will serve us well.

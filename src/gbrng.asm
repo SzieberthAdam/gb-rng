@@ -523,7 +523,7 @@ load_tiles:
     call randmap_addrcol1
     call randmap_addrcol2
     call randmap_addrcol3
-    call randmap_vals
+    call clear_randmap_vals
 ;
 ;
 ;;* Generate Random Bytes
