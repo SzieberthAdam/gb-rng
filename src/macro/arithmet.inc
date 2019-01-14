@@ -1,4 +1,4 @@
-;* MO_ARITH.INC
+;* ARITHMET.INC
 ;* Copyright (c) 2019 Szieberth Ádám
 ;* 0BSD License (see LICENSE file for more info)
 
@@ -14,8 +14,8 @@
 ; THE CODE
 ; ******************************************************************************
 
-IF !DEF(MO_ARITH_INC)
-MO_ARITH_INC SET 1
+IF !DEF(MACRO_ARITHMET_INC)
+MACRO_ARITHMET_INC SET 1
 
 ; Adds an integer to a 8 bit register (A, B, C, D, E, H, L).
 ; @return A/B/C/D/E/H/L with the new value.
@@ -60,4 +60,4 @@ _regh EQUS STRSUB("\1", 1, 1)
 PURGE _regl, _regh
 ENDM                            ; 8|8
 
-ENDC ;MO_ARITH_INC
+ENDC ;MACRO_ARITHMET_INC

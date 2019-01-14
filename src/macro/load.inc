@@ -1,4 +1,4 @@
-;* MO_LOAD.INC
+;* LOAD.INC
 ;* Copyright (c) 2019 Szieberth Ádám
 ;* 0BSD License (see LICENSE file for more info)
 
@@ -14,8 +14,8 @@
 ; THE CODE
 ; ******************************************************************************
 
-IF !DEF(MO_LOAD_INC)
-MO_LOAD_INC SET 1
+IF !DEF(MACRO_LOAD_INC)
+MACRO_LOAD_INC SET 1
 
 ; Dumps a given constant number into two bytes of the RAM. The high byte goes to
 ; the given address and the low byte to the given address + 1.
@@ -27,7 +27,7 @@ _la = STRSUB("\1", _len, 1)
     IF _fi != "[" && _la != "]"
         FAIL "arg1 should be an a16 in square brackets"
     ENDC
-_a16 EQUS STRSUB("\1", 2, _len + (-2))
+_a16 EQUS STRSUB("\1", 2, _len + (-2))  ; `_len - 2` would raise syntax error
     IF (\2 % 256) == 0
         xor a, a                ; 1|1
     ELSE
@@ -44,4 +44,4 @@ PURGE _len, _fi, _la, _a16
 ENDM
 
 
-ENDC ;MO_LOAD_INC
+ENDC ;MACRO_LOAD_INC

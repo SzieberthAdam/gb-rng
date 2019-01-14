@@ -1,4 +1,4 @@
-;* GBRNGDIS.INC
+;* RANDMAP.INC
 ;* Copyright (c) 2019 Szieberth Ádám
 ;* 0BSD License (see LICENSE file for more info)
 
@@ -6,58 +6,32 @@
 ;* ABSTRACT
 ;* =============================================================================
 
-;* This file handles the display of the GB-RNG software.
+;* This file handles the Random Map Screen of the GB-RNG software.
 
 
 ; ******************************************************************************
 ; THE CODE
 ; ******************************************************************************
 
-IF !DEF(GBRNGDIS_INC)
-GBRNGDIS_INC SET 1
+IF !DEF(RANDMAP_INC)
+RANDMAP_INC SET 1
 
-INCLUDE "MO_ARITH.INC"
-INCLUDE "MO_LOAD.INC"
-
-
-; Converts the value to a tile with the appropriate hexadecimal number.
-; @param A: The number whose tile we want. Must be within 0-15 or expect weird
-;     results.
-; @return A: the tile number
-GetHexadecimalTile: MACRO
-    cp a, 10                    ; 2|2
-    jr c, .inrange09            ; 2|3/2
-    add a, $7                   ; 2|2
-.inrange09
-    add a, $30                  ; 2|2
-ENDM
-                                ; 8|8 (8|7 if value in range 0-9)
-
-; Waits for H-Blank or V-Blank whichone comes first. As both are followed by the
-; OAM Search period of 20 CPU cycles and 6 is taken by this test, we have 14 CPU
-; cycles remaining to write to the VRAM if uninterrupted which should be
-; ensured. Thus, STAT interrupt selections should be not set for OAM Search and
-; LYC=LC and timer, serial, and joypad interrupts should be also disabled in the
-; IE register.
-; @destroy A
-WaitForBlanking: MACRO
-.__wait@
-    ld a, [rSTAT]               ; 2|3
-    and %00000010               ; 2|2   in mode 2 or 3?
-    jr nz, .__wait@             ; 2|2/3 if no, wait some more
-ENDM
+INCLUDE "MACRO/ARITHMET.INC"
+INCLUDE "MACRO/CP437.INC"
+INCLUDE "MACRO/LOAD.INC"
+INCLUDE "MACRO/LCD.INC"
 
 
-SECTION	"Display", ROM0
+SECTION	"Random Map Screen", ROM0
 
 
-; This subroutine initializes the Random Map Display.
+; This subroutine initializes the Random Map Screen.
 randmap_init:
     Load16 [DISPOFFSET], $C000  ; 7|9   reset the view offset
     ret                         ; 1|4
 
 
-; This subroutine draws the first row of the Random Map Display. The first four
+; This subroutine draws the first row of the Random Map Screen. The first four
 ; tiles there should be empty spaces (32) and the remaining tiles to be
 ; hexadecimal numbers from 0 to F.
 randmap_row0:
@@ -79,7 +53,7 @@ randmap_row0:
     jr .repeat                  ; 2|3
 
 
-; This subroutine draws the second row of the Random Map Display. The first
+; This subroutine draws the second row of the Random Map Screen. The first
 ; three tiles there should be empty spaces (32), the fourth tile should be an
 ; CP437 single line topleft corner (218) and the remaining tiles should be
 ; horizontal box drawing lines (196).
@@ -105,7 +79,7 @@ randmap_row1:
 
 
 ; This subroutine draws the first column of the row addresses of the Random Map
-; Display. These are the high nibbles of the high bytes of the addresses of the
+; Screen. These are the high nibbles of the high bytes of the addresses of the
 ; random values in the appropriate row of the random map. That address increases
 ; by 16 with every row: address = [DISPOFFSET] + 16 * randmaprow. We render the
 ; tiles going downwards vertically.
@@ -132,7 +106,7 @@ randmap_addrcol0:
 
 
 ; This subroutine draws the second column of the row addresses of the Random Map
-; Display. These are the low nibbles of the high bytes of the addresses of the
+; Screen. These are the low nibbles of the high bytes of the addresses of the
 ; random values in the appropriate row of the random map. That address increases
 ; by 16 with every row: address = [DISPOFFSET] + 16 * randmaprow. We render the
 ; tiles going downwards vertically.
@@ -158,7 +132,7 @@ randmap_addrcol1:
 
 
 ; This subroutine draws the third column of the row addresses of the Random Map
-; Display. These are the high nibbles of the low bytes of the addresses of the
+; Screen. These are the high nibbles of the low bytes of the addresses of the
 ; random values in the appropriate row of the random map. That address increases
 ; by 16 with every row: address = [DISPOFFSET] + 16 * randmaprow. We render the
 ; tiles going downwards vertically.
@@ -183,7 +157,7 @@ randmap_addrcol2:
 
 
 ; This subroutine draws the fourth column of the row addresses of the Random Map
-; Display. These are CP437 single vertical box drawing lines (179).
+; Screen. These are CP437 single vertical box drawing lines (179).
 randmap_addrcol3:
     ld hl, $990F                ; 3|4   start tile address
     ld b, 179                   ; 2|2   B = vertical line tile
@@ -199,7 +173,7 @@ randmap_addrcol3:
     jr .repeat                  ; 2|3
 
 
-; This subroutine clears the random map area of the Random Map Display which is
+; This subroutine clears the random map area of the Random Map Screen which is
 ; the bottom right 16*16 tiles of the screen. As we are going to display 256
 ; empty space (32) values, a single byte counter (and offset) will serve us
 ; well.
@@ -220,7 +194,7 @@ clear_randmap_vals:
     jr .repeat                  ; 2|3
 
 
-; This subroutine draws the random map area of the Random Map Display which is
+; This subroutine draws the random map area of the Random Map Screen which is
 ; the bottom right 16*16 tiles of the screen. As we are going to display 256
 ; values, a single byte counter (and offset) will serve us well.
 randmap_vals:
@@ -247,4 +221,16 @@ randmap_vals:
     jr .repeat                  ; 2|3
 
 
-ENDC ;GBRNGDIS_INC
+; This subroutine draws a new clear Random Map Screen.
+randmap_new:
+    call randmap_init
+    call randmap_row0
+    call randmap_row1
+    call randmap_addrcol0
+    call randmap_addrcol1
+    call randmap_addrcol2
+    call randmap_addrcol3
+    call clear_randmap_vals
+    ret                         ; 1|4
+
+ENDC; RANDMAP_INC

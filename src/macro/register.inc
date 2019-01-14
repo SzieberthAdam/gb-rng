@@ -1,4 +1,4 @@
-;* MO_REGI.INC
+;* REGISTER.INC
 ;* Copyright (c) 2019 Szieberth Ádám
 ;* 0BSD License (see LICENSE file for more info)
 
@@ -14,8 +14,8 @@
 ;* THE CODE
 ;* =============================================================================
 
-IF !DEF(MO_REGI_INC)
-MO_REGI_INC SET 1
+IF !DEF(MACRO_REGISTER_INC)
+MACRO_REGISTER_INC SET 1
 
 ;* DumpRegisters take eight optional a16 arguments to dump A, F, B, C, D, E, H,
 ;* and L register values respectively. To skip dumping a register, pass 0 as its
@@ -605,4 +605,4 @@ ENDM
 ;* value if F register was also dumped.
 
 
-ENDC ;MO_REGI_INC
+ENDC ;MACRO_REGISTER_INC
