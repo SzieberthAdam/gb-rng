@@ -204,19 +204,14 @@ LoadRegisters: MACRO
     pop af                      ; 1|3
     ENDC
 
-    IF \3 != 0                  ;       B Register
-    ld a, [\3]                  ; 2/3|3/4
-    ld b, a                     ; 1|1
-    ENDC
-
     IF \4 != 0                  ;       C Register
     ld a, [\4]                  ; 2/3|3/4
     ld c, a                     ; 1|1
     ENDC
 
-    IF \5 != 0                  ;       D Register
-    ld a, [\5]                  ; 2/3|3/4
-    ld d, a                     ; 1|1
+    IF \3 != 0                  ;       B Register
+    ld a, [\3]                  ; 2/3|3/4
+    ld b, a                     ; 1|1
     ENDC
 
     IF \6 != 0                  ;       E Register
@@ -224,14 +219,19 @@ LoadRegisters: MACRO
     ld e, a                     ; 1|1
     ENDC
 
-    IF \7 != 0                  ;       H Register
-    ld a, [\7]                  ; 2/3|3/4
-    ld h, a                     ; 1|1
+    IF \5 != 0                  ;       D Register
+    ld a, [\5]                  ; 2/3|3/4
+    ld d, a                     ; 1|1
     ENDC
 
     IF \8 != 0                  ;       L Register
     ld a, [\8]                  ; 2/3|3/4
     ld l, a                     ; 1|1
+    ENDC
+
+    IF \7 != 0                  ;       H Register
+    ld a, [\7]                  ; 2/3|3/4
+    ld h, a                     ; 1|1
     ENDC
 
     IF \1 != 0                  ;       A Register
@@ -326,7 +326,7 @@ ENDM
 ;* address as the argument and loads the BC register from 2 bytes starting with
 ;* the given address.
 
-;* Destroys A.
+;* @return A = B
 
 ;* Takes 6 bytes and 8 cycles if given address is in HRAM.
 ;* Takes 8 bytes and 10 cycles if given address is in WRAM.
@@ -356,7 +356,7 @@ ENDM
 ;* address as the argument and loads the DE register from 2 bytes starting with
 ;* the given address.
 
-;* Destroys A.
+;* @return A = D
 
 ;* Takes 6 bytes and 8 cycles if given address is in HRAM.
 ;* Takes 8 bytes and 10 cycles if given address is in WRAM.
@@ -386,7 +386,7 @@ ENDM
 ;* address as the argument and loads the HL register from 2 bytes starting with
 ;* the given address.
 
-;* Destroys A.
+;* @return A = H
 
 ;* Takes 6 bytes and 8 cycles if given address is in HRAM.
 ;* Takes 8 bytes and 10 cycles if given address is in WRAM.
@@ -438,7 +438,7 @@ ENDM
 ;* LoadB is a one argument shortcut of LoadRegisters which requires a 16 bit
 ;* address as the argument and loads the B register from the given RAM address.
 
-;* Destroys A.
+;* @return A = B
 
 ;* Takes 3 bytes and 4 cycles if given address is in HRAM.
 ;* Takes 4 bytes and 5 cycles if given address is in WRAM.
@@ -466,7 +466,7 @@ ENDM
 ;* LoadC is a one argument shortcut of LoadRegisters which requires a 16 bit
 ;* address as the argument and loads the C register from the given RAM address.
 
-;* Destroys A.
+;* @return A = C
 
 ;* Takes 3 bytes and 4 cycles if given address is in HRAM.
 ;* Takes 4 bytes and 5 cycles if given address is in WRAM.
@@ -494,7 +494,7 @@ ENDM
 ;* LoadD is a one argument shortcut of LoadRegisters which requires a 16 bit
 ;* address as the argument and loads the D register from the given RAM address.
 
-;* Destroys A.
+;* @return A = D
 
 ;* Takes 3 bytes and 4 cycles if given address is in HRAM.
 ;* Takes 4 bytes and 5 cycles if given address is in WRAM.
@@ -522,7 +522,7 @@ ENDM
 ;* LoadE is a one argument shortcut of LoadRegisters which requires a 16 bit
 ;* address as the argument and loads the E register from the given RAM address.
 
-;* Destroys A.
+;* @return A = E
 
 ;* Takes 3 bytes and 4 cycles if given address is in HRAM.
 ;* Takes 4 bytes and 5 cycles if given address is in WRAM.
@@ -550,7 +550,7 @@ ENDM
 ;* LoadH is a one argument shortcut of LoadRegisters which requires a 16 bit
 ;* address as the argument and loads the H register from the given RAM address.
 
-;* Destroys A.
+;* @return A = H
 
 ;* Takes 3 bytes and 4 cycles if given address is in HRAM.
 ;* Takes 4 bytes and 5 cycles if given address is in WRAM.
@@ -578,7 +578,7 @@ ENDM
 ;* LoadL is a one argument shortcut of LoadRegisters which requires a 16 bit
 ;* address as the argument and loads the L register from the given RAM address.
 
-;* Destroys A.
+;* @return A = L
 
 ;* Takes 3 bytes and 4 cycles if given address is in HRAM.
 ;* Takes 4 bytes and 5 cycles if given address is in WRAM.

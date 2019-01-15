@@ -26,7 +26,7 @@ INCLUDE "RNG.INC"
 SECTION "RNG", ROM0
 
 rand_init::
-    ld hl, GBRNG_RES_START      ; 3|3
+    ld hl, $C000                ; 3|3
     ret                         ; 1|4
 
 ;* =============================================================================
@@ -38,12 +38,12 @@ rand_init::
 
 rand::
     ld a, h                     ; 1|1
-    cp GBRNG_RES_STOP >> 8      ; 2|2
-    jr nc, .yield_null          ; 2|2/3 NC: GBRNG_RES_STOP_Hi <= H
+    cp a, $E0                   ; 2|2
+    jr nc, .yield_null          ; 2|2/3 NC: $E000_Hi <= H
     jr nz, .yield_bc            ; 2|2/3
     ld a, l                     ; 1|1
-    cp GBRNG_RES_STOP & $FF     ; 2|2
-    jr nc, .yield_null          ; 2|2/3 NC: GBRNG_RES_STOP <= HL
+    and a, a                    ; 1|1   ≡ cp a, 0
+    jr nc, .yield_null          ; 2|2/3 NC: $E000 <= HL
 .yield_bc
     ld a, [hl+]                 ; 1|2
     ret                         ; 1|4

@@ -38,7 +38,7 @@ randmap_row0:
     ld hl, $98CC                ; 3|4   start tile address
     ld b, 32                    ; 2|2   B = space tile
 .repeat
-    WaitForBlanking             ; 6|?
+    WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = tile
     ld [hl+], a                 ; 1|2   write tile to BG map
     ld a, l                     ; 1|1   at $98E0 we are done
@@ -61,7 +61,7 @@ randmap_row1:
     ld hl, $98EC                ; 3|4   start tile address
     ld b, 32                    ; 2|2   B = space tile
 .repeat
-    WaitForBlanking             ; 6|?
+    WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = tile
     ld [hl+], a                 ; 1|2   write tile to BG map
     ld a, l                     ; 1|1   at $9900 we are done
@@ -95,7 +95,7 @@ randmap_addrcol0:
     swap a                      ; 2|2   A = AHB high nibble
     GetHexadecimalTile          ; 8|7/8
     ld b, a                     ; 1|1   B = hexadecimal tile
-    WaitForBlanking             ; 6|?
+    WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = hexadecimal tile
     ld [hl], a                  ; 1|2   write tile to BG map
     Add16 hl, 32                ; 8|8   HL += 32
@@ -121,7 +121,7 @@ randmap_addrcol1:
     and a, $0F                  ; 2|2   A = AHB low nibble
     GetHexadecimalTile          ; 8|7/8
     ld b, a                     ; 1|1   B = hexadecimal tile
-    WaitForBlanking             ; 6|?
+    WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = hexadecimal tile
     ld [hl], a                  ; 1|2   write tile to BG map
     Add16 hl, 32                ; 8|8   HL += 32
@@ -146,7 +146,7 @@ randmap_addrcol2:
     swap a                      ; 2|2   A = ALB high nibble
     GetHexadecimalTile          ; 8|7/8
     ld b, a                     ; 1|1
-    WaitForBlanking             ; 6|?
+    WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = hexadecimal tile
     ld [hl], a                  ; 1|2   write tile to BG map
     Add16 hl, 32                ; 8|8   HL += 32
@@ -163,7 +163,7 @@ randmap_addrcol3:
     ld b, 179                   ; 2|2   B = vertical line tile
     ld c, 0                     ; 2|2   C = 16 * randmaprow
 .repeat
-    WaitForBlanking             ; 6|?
+    WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = vertical line tile
     ld [hl], a                  ; 1|2   write tile to BG map
     Add16 hl, 32                ; 8|8   HL += 32
@@ -182,7 +182,7 @@ clear_randmap_vals:
     ld b, 32                    ; 2|2   B = space tile
     ld c, 0                     ; 2|2   C = value counter/offset
 .repeat
-    WaitForBlanking             ; 6|?
+    WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = space tile
     ld [hl+], a                 ; 1|2   write space tile to BG map
     inc c                       ; 1|1   C += 1
@@ -209,7 +209,7 @@ randmap_vals:
     ld d, a                     ; 1|1   D = current address high byte
     ld a, [de]                  ; 1|2   A = random value
     ld b, a                     ; 1|1   B = random value
-    WaitForBlanking             ; 6|?
+    WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = random value
     ld [hl+], a                 ; 1|2   write random value tile to BG map
     inc c                       ; 1|1   C += 1
