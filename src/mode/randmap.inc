@@ -16,7 +16,6 @@
 IF !DEF(RANDMAP_INC)
 RANDMAP_INC SET 1
 
-INCLUDE "MACRO/ARITHMET.INC"
 INCLUDE "MACRO/CP437.INC"
 INCLUDE "MACRO/LCD.INC"
 
@@ -100,10 +99,17 @@ randmap_addrcol0:
     WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = hexadecimal tile
     ld [hl], a                  ; 1|2   write tile to BG map
-    Add16 hl, 32                ; 8|8   HL += 32
+    ld a, l                     ; 1|1   HL += 32
+    add a, 32 % 256             ; 2|2   ...
+    ld l, a                     ; 1|1   ...
+    ld a, h                     ; 1|1   ...
+    adc a, 32 / 256             ; 2|2   ...
+    ld h, a                     ; 1|1   ___
     cp a, $9B                   ; 2|2   at $9B0C we are done
     ret z                       ; 1|5/2 ___
-    Add8 c, 16                  ; 4|4   C += 16
+    ld a, c                     ; 1|1   C += 16
+    add a, 16                   ; 2|2   ...
+    ld c, a                     ; 1|1   ___
     jr .repeat                  ; 2|3
 
 
@@ -126,10 +132,17 @@ randmap_addrcol1:
     WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = hexadecimal tile
     ld [hl], a                  ; 1|2   write tile to BG map
-    Add16 hl, 32                ; 8|8   HL += 32
+    ld a, l                     ; 1|1   HL += 32
+    add a, 32 % 256             ; 2|2   ...
+    ld l, a                     ; 1|1   ...
+    ld a, h                     ; 1|1   ...
+    adc a, 32 / 256             ; 2|2   ...
+    ld h, a                     ; 1|1   ___
     cp a, $9B                   ; 2|2   at $9B0D we are done
     ret z                       ; 1|5/2 ___
-    Add8 c, 16                  ; 4|4   C += 16
+    ld a, c                     ; 1|1   C += 16
+    add a, 16                   ; 2|2   ...
+    ld c, a                     ; 1|1   ___
     jr .repeat                  ; 2|3
 
 
@@ -151,10 +164,17 @@ randmap_addrcol2:
     WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = hexadecimal tile
     ld [hl], a                  ; 1|2   write tile to BG map
-    Add16 hl, 32                ; 8|8   HL += 32
+    ld a, l                     ; 1|1   HL += 32
+    add a, 32 % 256             ; 2|2   ...
+    ld l, a                     ; 1|1   ...
+    ld a, h                     ; 1|1   ...
+    adc a, 32 / 256             ; 2|2   ...
+    ld h, a                     ; 1|1   ___
     cp a, $9B                   ; 2|2   at $9B0E we are done
     ret z                       ; 1|5/2 ___
-    Add8 c, 16                  ; 4|4   C += 16
+    ld a, c                     ; 1|1   C += 16
+    add a, 16                   ; 2|2   ...
+    ld c, a                     ; 1|1   ___
     jr .repeat                  ; 2|3
 
 
@@ -168,10 +188,17 @@ randmap_addrcol3:
     WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = vertical line tile
     ld [hl], a                  ; 1|2   write tile to BG map
-    Add16 hl, 32                ; 8|8   HL += 32
+    ld a, l                     ; 1|1   HL += 32
+    add a, 32 % 256             ; 2|2   ...
+    ld l, a                     ; 1|1   ...
+    ld a, h                     ; 1|1   ...
+    adc a, 32 / 256             ; 2|2   ...
+    ld h, a                     ; 1|1   ___
     cp a, $9B                   ; 2|2   at $9B0F we are done
     ret z                       ; 1|5/2 ___
-    Add8 c, 16                  ; 4|4   C += 16
+    ld a, c                     ; 1|1   C += 16
+    add a, 16                   ; 2|2   ...
+    ld c, a                     ; 1|1   ___
     jr .repeat                  ; 2|3
 
 
@@ -192,7 +219,12 @@ clear_randmap_vals:
     ld a, c                     ; 1|1   A = value counter/offset
     and a, $0F                  ; 1|1   if the low nibble is nonzero then we are
     jr nz, .repeat              ; 2|3     not at the start of the next row
-    Add16 HL, 16                ; 8|8   otherwise, HL += 16
+    ld a, l                     ; 1|1   otherwise, HL += 16
+    add a, 16 % 256             ; 2|2   ...
+    ld l, a                     ; 1|1   ...
+    ld a, h                     ; 1|1   ...
+    adc a, 16 / 256             ; 2|2   ...
+    ld h, a                     ; 1|1   ___
     jr .repeat                  ; 2|3
 
 ;* The `randmap_val_blank` draws a single random value onto the Random Map Area
@@ -274,7 +306,12 @@ randmap_vals:
     ld a, c                     ; 1|1   A = value counter/offset
     and a, $0F                  ; 1|1   if the low nibble is nonzero then we are
     jr nz, .repeat              ; 2|3     not at the start of the next row
-    Add16 HL, 16                ; 8|8   otherwise, HL += 16
+    ld a, l                     ; 1|1   otherwise, HL += 16
+    add a, 16 % 256             ; 2|2   ...
+    ld l, a                     ; 1|1   ...
+    ld a, h                     ; 1|1   ...
+    adc a, 16 / 256             ; 2|2   ...
+    ld h, a                     ; 1|1   ___
     jr .repeat                  ; 2|3
 
 

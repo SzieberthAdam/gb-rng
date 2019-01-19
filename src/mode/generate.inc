@@ -17,7 +17,6 @@ IF !DEF(GENERATE_INC)
 GENERATE_INC SET 1
 
 INCLUDE "GBRNG.INC"
-INCLUDE "MACRO/ARITHMET.INC"
 INCLUDE "MACRO/CP437.INC"
 INCLUDE "MACRO/LCD.INC"
 INCLUDE "MACRO/REGISTER.INC"
@@ -325,7 +324,12 @@ generate_new:
     ret z                       ; 1|5/2 ___
     and a, $0F                  ; 2|2   if not at row end (every 16), go to next
     jr nz, .repeat              ; 2|3/2 ___
-    Add16 de, 16                ; 8|8   at row end, adjust DE; DE += 16
+    ld a, e                     ; 1|1   at row end, adjust DE; DE += 16
+    add a, 16 % 256             ; 2|2   ...
+    ld e, a                     ; 1|1   ...
+    ld a, d                     ; 1|1   ...
+    adc a, 16 / 256             ; 2|2   ...
+    ld d, a                     ; 1|1   ___
     jr .repeat                  ; 2|3
 
 
