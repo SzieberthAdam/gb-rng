@@ -55,12 +55,8 @@ SECTION "Included Codes", ROM0
 PUSHS
 INCLUDE "SR_POPCP.INC"
 
-
 INCLUDE "MACRO/LCD.INC"
 
-;* REGISTER.INC is a macro package to dump and load register values. We will use
-;* that to let the RNG full access over all the registers for its own use.
-INCLUDE "MACRO/REGISTER.INC"
 
 ;* Now we include our modes.
 INCLUDE "MODE/RANDMAP.INC"
@@ -606,7 +602,8 @@ mastervblankhandler:            ; 17|32/19 (32 if slave, 19 if no slave)
     push de                     ; 1|4
     push hl                     ; 1|4
     ld h, a                     ; 1|1
-    LoadL SLAVEVBHADDR+1        ; 3|4
+    ld a, [SLAVEVBHADDR+1]      ; 2|3
+    ld l, a                     ; 1|1
     jp hl                       ; 1|4
 ._noslavevbh
     pop af                      ; 1|3
