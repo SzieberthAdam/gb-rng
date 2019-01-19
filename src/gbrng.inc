@@ -1,7 +1,7 @@
 IF !DEF(GBRNG_INC)
 GBRNG_INC = 1
 
-GENERATEVBHADDR EQU $0068
+GENERATEVBHADDR EQU $5000
 
 RNGREGST EQU $FF90              ;       8 bytes for AF BC DE HL
 
@@ -9,13 +9,21 @@ SLAVEVBHADDR EQU $FFA1
 KEYNEW EQU $FFA3
 KEYOLD EQU $FFA4
 
-GBRNG_DSP_ROW EQU $FFAA
-DISPOFFSET EQU $FFAC
+DISPOFFSET EQU $FFAA
+GENERATESHOWADDR EQU $FFAC
 GENERATEADDR EQU $FFAE
 
 
 DISPTSCX EQU 12
 DISPTSCY EQU 6
+
+;* Below is the upper bound of the Generate Screen's countdown counter. It
+;* should be set to support the visual experience of live drawing of the
+;* generated random values and also it must keep the Generate Screen's V-Blank
+;* handler within the V-Blank period. It turned out that the second criteria
+;* maximizes `GENERATECDCTRUB` in 14 which is thankfully also support our first
+;* criteria.
+GENERATECDCTRUB EQU 14
 
 
 ; This macro unsets the mode specific V-Blank handler. A 16bit address should be

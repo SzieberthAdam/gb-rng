@@ -9,16 +9,15 @@
 ;* This file handles the Random Map Screen of the GB-RNG software.
 
 
-; ******************************************************************************
-; THE CODE
-; ******************************************************************************
+;* =============================================================================
+;* THE CODE
+;* =============================================================================
 
 IF !DEF(RANDMAP_INC)
 RANDMAP_INC SET 1
 
 INCLUDE "MACRO/ARITHMET.INC"
 INCLUDE "MACRO/CP437.INC"
-INCLUDE "MACRO/LOAD.INC"
 INCLUDE "MACRO/LCD.INC"
 
 
@@ -27,7 +26,10 @@ SECTION	"Random Map Screen", ROM0
 
 ; This subroutine initializes the Random Map Screen.
 randmap_init:
-    Load16 [DISPOFFSET], $C000  ; 7|9   reset the view offset
+    ld a, $C0                   ; 2|2
+    ld [DISPOFFSET], a          ; 2|3
+    xor a, a                    ; 1|1   ≡ ld a, 0
+    ld [DISPOFFSET+1], a        ; 2|3
     ret                         ; 1|4
 
 
@@ -93,7 +95,7 @@ randmap_addrcol0:
     adc a, 0                    ; 2|2   A = current address high byte (AHB)
     and a, $F0                  ; 2|2   trim the low nibble
     swap a                      ; 2|2   A = AHB high nibble
-    GetHexadecimalTile          ; 8|7/8
+    GetHexadecimalTile          ; 8|8/7
     ld b, a                     ; 1|1   B = hexadecimal tile
     WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = hexadecimal tile
@@ -119,7 +121,7 @@ randmap_addrcol1:
     ld a, [DISPOFFSET]          ; 2|3   A = topleft address high byte
     adc a, 0                    ; 2|2   A = current address high byte (AHB)
     and a, $0F                  ; 2|2   A = AHB low nibble
-    GetHexadecimalTile          ; 8|7/8
+    GetHexadecimalTile          ; 8|8/7
     ld b, a                     ; 1|1   B = hexadecimal tile
     WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = hexadecimal tile
@@ -144,7 +146,7 @@ randmap_addrcol2:
     add a, c                    ; 1|1   A = current address low byte (ALB)
     and a, $F0                  ; 2|2   trim the low nibble
     swap a                      ; 2|2   A = ALB high nibble
-    GetHexadecimalTile          ; 8|7/8
+    GetHexadecimalTile          ; 8|8/7
     ld b, a                     ; 1|1
     WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = hexadecimal tile
@@ -192,6 +194,61 @@ clear_randmap_vals:
     jr nz, .repeat              ; 2|3     not at the start of the next row
     Add16 HL, 16                ; 8|8   otherwise, HL += 16
     jr .repeat                  ; 2|3
+
+;* The `randmap_val_blank` draws a single random value onto the Random Map Area
+;* during a blanking period. It takes the 8 bit index value (`I`), get the
+;* appropriate random value in the WRAM, calculates the appropriate BG map
+;* address, then writes the value there. Getting the random value is easier as
+;* it is in the memory address `DISPOFFSET+I`. The 16x16 Random Map's top left
+;* corner's address in the BG map is $9910 which is the tile for `I=0`. Let's
+;* see the BG map addresses of the various indices:
+;*
+;*                 | xI |    bI    | xAdr |       bAdr        |
+;*                 |----|----------|------|-------------------|
+;*                 | 00 | 00000000 | 9910 | 10011001 00010000 |
+;*                 | 0F | 00001111 | 991F | 10011001 00011111 |
+;*                 | 10 | 00010000 | 9930 | 10011001 00110000 |
+;*                 | 1F | 00011111 | 993F | 10011001 00111111 |
+;*                 |                   ....                   |
+;*                 | 70 | 01110000 | 99F0 | 10011001 11110000 |
+;*                 | 7F | 01111111 | 99FF | 10011001 11111111 |
+;*                 | 80 | 10000000 | 9A10 | 10011010 00010000 |
+;*                 | 8F | 10001111 | 9A1F | 10011010 00011111 |
+;*                 |                   ....                   |
+;*
+;* As you can see the low nibble of the index is the low nibble of the address'
+;* low byte which is fine. The high nibble though is splitted: The most
+;* significant bit goes to the high byte of the address. More precisely it if it
+;* is set then we add one to the initial high byte value which is $99. Bits 4-6
+;* inclusive goes to the BG mapp address' low byte, to bits 5-7, respectively.
+;* Bit 4 of the address' low byte is always set.
+
+; This subroutine draws a single random value onto the Random Map Area during
+; a blanking period.
+; @param B the index of the value
+; @destroy DE, HL
+randmap_val_blank::             ; 29|36
+    ld a, b                     ; 1|1   A = I
+    and a, %11110000            ; 2|2   A = I high nibble
+    set 3, a                    ; 2|2   set bit 4 here before the shift
+    sla a                       ; 2|2   shift A to the left, CY = top bit
+    ld l, a                     ; 1|1   L = unfinished address low byte
+    ld a, $99                   ; 2|2   A = initial high byte
+    adc a, 0                    ; 2|2   A = initial high byte + CY = high byte
+    ld h, a                     ; 1|1   H = BG map address high byte
+    ld a, b                     ; 1|1   A = I
+    and a, %00001111            ; 1|1   A = I low byte
+    add a, l                    ; 1|1   A = BG map address high byte
+    ld l, a                     ; 1|1   L = BG map address high byte
+    ld a, [DISPOFFSET+1]        ; 2|3   A = topleft randval address low byte
+    add a, b                    ; 1|1   A = current randval address low byte
+    ld e, a                     ; 1|1   E = current randval address low byte
+    ld a, [DISPOFFSET]          ; 2|3   A = topleft randval address high byte
+    adc a, 0                    ; 2|2   A = current randval address high byte
+    ld d, a                     ; 1|1   D = current randval address high byte
+    ld a, [de]                  ; 1|2   A = random value
+    ld [hl], a                  ; 1|2   [HL] = random value (BG map)
+    ret                         ; 1|4
 
 
 ; This subroutine draws the random map area of the Random Map Screen which is

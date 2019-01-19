@@ -199,9 +199,8 @@ SECTION	"End of Input Signal for ports P10-P13 Interrupt", ROM0[$0060]
 ;* Moreover, the whole $0000--$00FF area can be used freely if your program
 ;* does not use restarts and disables interrupts. You can also do relative jumps
 ;* over required restart and/or interrupt handlers if necessary.
-
-;* SECTION	"Free Space from $068", ROM0[$0068]
-;*     DS 152                      ; 152|0 $0068--$00FF
+* SECTION	"Free Space from $068", ROM0[$0068]
+*     DS 152                      ; 152|0 $0068--$00FF
 
 
 ; ******************************************************************************
@@ -598,18 +597,18 @@ wait:
 ; should be done only with the `SetVblankHandler` and `UnsetVblankHandler`
 ; macros imported from the GBRNG.INC. It is also important that every slave
 ; interrupt handler must call the `EndOfVblankHandler` macro at its end!
-mastervblankhandler:
+mastervblankhandler:            ; 17|32/19 (32 if slave, 19 if no slave)
     push af                     ; 1|4
     ld a, [SLAVEVBHADDR]        ; 2|3
     cp a, $E0                   ; 2|2   $E0 means there is no slave handler
-    jr z, .noslavevbh           ; 2|2/3
+    jr z, ._noslavevbh          ; 2|2/3
     push bc                     ; 1|4
     push de                     ; 1|4
     push hl                     ; 1|4
     ld h, a                     ; 1|1
     LoadL SLAVEVBHADDR+1        ; 3|4
     jp hl                       ; 1|4
-.noslavevbh
+._noslavevbh
     pop af                      ; 1|3
     reti                        ; 1|4
 

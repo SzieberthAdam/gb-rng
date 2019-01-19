@@ -32,6 +32,13 @@
         IF      !DEF(HARDWARE_INC)
 HARDWARE_INC  SET  1
 
+
+;* Here we inject the fake divider register of GB-RNG which yields the low byte
+;* of the random value address:
+INCLUDE "GBRNG.INC"
+rDIV EQU GENERATEADDR+1
+
+
 rev_Check_hardware_inc: MACRO
 ;NOTE: REVISION NUMBER CHANGES MUST BE ADDED
 ;TO SECOND PARAMETER IN FOLLOWING LINE.
@@ -104,10 +111,9 @@ rSC EQU $FF02
 ; -- DIV ($FF04)
 ; -- Divider register (R/W)
 ; --
+; WARNING! The address below is commented as GB-RNG has a fake divider register!
 ;rDIV EQU $FF04
 
-;* WARNING! The address below points to the fake divider register of GB-RNG!
-rDIV EQU $FFAF
 
 ; --
 ; -- TIMA ($FF05)
