@@ -438,12 +438,13 @@ generate_rand_data:
 ;* random values are shown at most in one V-Blank period. In the worst case
 ;* scenario none are already shown on this point so we need to wait
 ;* (256/counter) + 1 frames to ensure them alee shown.
-
-    ld a, (256/GENERATECDCTRUB)+1 ; 2|2 wait one frame to show the final state
-    ld c, a                     ; 1|1   ...
+_N = (256/GENERATECDCTRUB)+1
+    ld a, _N                    ; 2|2 wait `(256/counter) + 1` frames to show
+    ld c, a                     ; 1|1   ... the final state
     WaitFrames c                ; 18|?  ___
     UnsetVblankHandler          ; 4|5
     ret                         ; 1|4
+PURGE _N
 
 
 SECTION	"Random Number Generating Screen Background", ROM0, ALIGN[7]

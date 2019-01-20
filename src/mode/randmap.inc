@@ -20,8 +20,139 @@ INCLUDE "MACRO/CP437.INC"
 INCLUDE "MACRO/LCD.INC"
 
 
-SECTION	"Random Map Screen", ROM0
+SECTION	"Random Map V-Blank Handler", ROM0[RANDMAPVBHADDR]
+randmap_vblankhandler::
+    call key
+    ld a, [KEYHOLD]
+    ld c, a
+    ld a, [KEYNEW]              ; 2|3   LDH
+    ld b, a
+    and a, %00001000            ; 2|2   start is pressed
+    jr nz, .at_start
+    ld a, b
+    and a, %10000000            ; 2|2   down is pressed
+    jr nz, .at_down
+    ld a, b
+    and a, %01000000            ; 2|2   up is pressed
+    jr nz, .at_up
+    xor a, a
+    ld c, a
+    jp .done
+.setmove
+    bit 5, c
+    jr nz, .d64
+    bit 4, c
+    jr nz, .d32
+    bit 3, c
+    jr nz, .d16
+    ld d, 0
+    ret
+.d64
+    ld d, 64
+    ret
+.d32
+    ld d, 32
+    ret
+.d16
+    ld d, 16
+    ret
+.at_start
+    ld a, 2
+    ld [MODE], a
+    jr .post_any_pressed_mode
+.at_up
+    ld a, c
+    and a, %01000000
+    jr nz, .at_up_hold
+    ld c, %01000001
+    ld d, 16
+    jr .at_up_guard
+.at_up_hold
+    ld a, c
+    cp a, %01100000
+    jr z, .at_up_hold_inced
+    inc a
+.at_up_hold_inced
+    ld c, a
+    call .setmove
+.at_up_guard
+    ld a, $C0
+    ld e, a
+    ld a, [DISPOFFSET]
+    ld h, a
+    cp a, e                   ; 2|2   Z set if A == $C0
+    ld a, [DISPOFFSET+1]
+    ld l, a
+    jr nz, .at_up_ok
+    and a, a
+    jr z, .done
+.at_up_ok
+    ld a, l
+    sub a, d
+    ld [DISPOFFSET+1], a
+    ld a, h
+    sbc a, 0
+    cp a, e
+    jr nc, .at_down_fine
+    xor a, a
+    ld [DISPOFFSET+1], a
+    ld a, e
+.at_up_fine
+    ld [DISPOFFSET], a
+    jr .post_any_pressed
+.at_down
+    ld a, c
+    and a, %10000000
+    jr nz, .at_down_hold
+    ld c, %10000001
+    ld d, 16
+    jr .at_down_guard
+.at_down_hold
+    ld a, c
+    cp a, %10100000
+    jr z, .at_down_hold_inced
+    inc a
+.at_down_hold_inced
+    ld c, a
+    call .setmove
+.at_down_guard
+    ld a, $DF
+    ld e, a
+    ld a, [DISPOFFSET]
+    ld h, a
+    cp a, e                     ; 2|2   C set if A < $DF
+    ld a, [DISPOFFSET+1]
+    ld l, a
+    jr c, .at_down_ok
+    and a, a
+    jr z, .done
+.at_down_ok
+    ld a, l
+    add a, d
+    ld [DISPOFFSET+1], a
+    ld a, h
+    adc a, 0
+    ld h, a
+    ld a, e
+    cp a, h
+    ld a, h
+    jr nc, .at_down_fine
+    xor a, a
+    ld [DISPOFFSET+1], a
+    ld a, e
+.at_down_fine
+    ld [DISPOFFSET], a
+.post_any_pressed
+    ld a, 1
+    ld [MODE], a
+.post_any_pressed_mode
+    UnsetVblankHandler
+.done
+    ld a, c
+    ld [KEYHOLD], a
+    EndOfVblankHandler          ; 5|16
 
+SECTION	"Random Map Screen", ROM0
 
 ; This subroutine initializes the Random Map Screen.
 randmap_init:

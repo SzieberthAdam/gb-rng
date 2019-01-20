@@ -77,6 +77,9 @@ INCLUDE "MODE/GENERATE.INC"
 ;* that jumping is a 3 byte long instruction and defeats the purpose of speed in
 ;* a RST." [ASMS]
 
+;* Note that an RST $XX and a JP a16 both take three CPU cycles so RST is not
+;* faster but only shorter.
+
 SECTION "Restart Vectors", ROM0[$0000]
 
 ;* The SECTION directive RGBASM specific:
@@ -528,60 +531,63 @@ load_tiles:
 	ld	[rLCDC], a              ; 2|2   LDH
 
 
+;* Enable V-Blank interrupts
+;* -----------------------------------------------------------------------------
+    ld a, %00000001             ; 2|2   enable V-Blank interrupts
+    ld [rIE], a                 ; 2|3   ...
+    ei                          ; 1|1   ___
+
+
+;* Initialize RNG
+;* -----------------------------------------------------------------------------
+init::
+    call reset_rng              ; 3|6+45
+
+
 ;* Start with a new Random Map Screen
 ;* -----------------------------------------------------------------------------
+new_randmap::
     call randmap_new            ; 3|6+?
 
 
 ;* Generate Random Bytes
 ;* -----------------------------------------------------------------------------
-
-    call reset_rng              ; 3|6+45
-    ld a, %00000001             ; 2|2   enable V-Blank interrupts
-    ld [rIE], a                 ; 2|3   ...
-    ei                          ; 1|1   ___
+generate::
     call generate_new           ; 3|6+?
     call generate_rand_data     ; 3|6+?
+    ld a, 30                    ; 2|2   sleep for about 1/2 second
+    ld c, a                     ; 1|1   ...
+    WaitFrames c                ; 18|?  ___
 
 
 ;* Show the Random Number Map
 ;* -----------------------------------------------------------------------------
-
-    ld a, 30                    ; 2|2   sleep for about 1/2 second
-    ld c, a                     ; 1|1   ...
-    WaitFrames c                ; 18|?  ___
+randmap::
+    xor a, a
+    ld [MODE], a
+    call randmap_addrcol0
+    call randmap_addrcol1
+    call randmap_addrcol2
     call randmap_vals           ; 3|6+?
-
+    SetVblankHandler          \ ; 8|10  set randmap_vblankhandler as slave
+        RANDMAPVBHADDR
 
 ;* Endless Loop
 ;* -----------------------------------------------------------------------------
 
 ;* Finally we enter into an infinite loop.
 
-wait:
+mainloop::
     halt                        ; 1|4
     nop                         ; 1|4
-
-;;* Generate more random values if start is pressed.
-;
-;    ld a, [KEYNEW]              ; 2|3   LDH
-;    ld b, a
-;    and a, %00001000            ; 2|2   start is pressed
-;    jp nz, generate_rand_data   ; 3|4/3
-;    ld a, b
-;    and a, %10000000            ; 2|2   down is pressed
-;    jp z, wait
-;    ld a, [RANDMAPDISP+1]
-;    add a, 16
-;    ld [RANDMAPDISP+1], a
-;    ld a, [RANDMAPDISP]
-;    adc a, 0
-;    ld [RANDMAPDISP], a
-;    di
-;    call display_random_numbers
-;    ei
-
-    jr wait                     ; 2|12
+    ld a, [MODE]
+    and a, a
+    jr z, mainloop
+    cp a, 1
+    jr z, randmap
+    cp a, 2
+    jr z, generate
+    jr mainloop                 ; 2|12
 
 
 ;* Subroutines
@@ -610,7 +616,7 @@ mastervblankhandler:            ; 17|32/19 (32 if slave, 19 if no slave)
     reti                        ; 1|4
 
 
-key::
+key::                           ; 47|53  (50|56 if KEYNEW/KEYOLD in WRAM)
     ld a, [KEYNEW]              ; 2|3   LDH
     ld [KEYOLD], a              ; 2|3   LDH
     ld c, a                     ; 1|1   C = KEYOLD
@@ -638,8 +644,6 @@ key::
     ld a, $30                   ; 2|2   "Port reset
     ld [rP1], a                 ; 2|2   " [GBPM]
     ret                         ; 1|4
-
-                                ; 47|53 TOTAL (50|56 if KEYNEW/KEYOLD in WRAM)
 
 
 ;* The following subroutine stops the LCD. During that state we have full access
