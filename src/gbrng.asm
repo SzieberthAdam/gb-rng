@@ -394,14 +394,8 @@ main:
     ld [rBGP], a		        ; 3|4
 
 
-;* I set the horizontal scroll register to 12 tiles right and the vertical
-;* scroll register to 6 tiles down so that $98CC will be the address of the top
-;* left tile of the static GB-RNG screen. $9AFF will be the bottom right tile's
-;* address. This adjustment has the advantage of placing the random map area's
-;* top left tile to $9910. That results the lowest nibble of the VRAM address
-;* to match with the low nibble of the random value's address. The high nibble
-;* could be more optimized but only if we would split the screen which would
-;* result more trouble with other rendering tasks.
+;* We set the scroll registers. As GB-RNG.INC contains them in tile measure, we
+;* have to multiply by 8 to transfer them to pixel measure.
 
     ld a, DISPTSCX*8            ; 2|2   DISPTSCX = 12
     ld [rSCX], a                ; 2|3
@@ -474,9 +468,6 @@ duplicate_rngseed:
 	inc	de                      ; 1|2
     dec b                       ; 1|1
     jr nz, .loop                ; 2|2/3
-
-
-
 
 
 ;* Load tiles

@@ -148,12 +148,9 @@ randmap_vblankhandler::
 
 ;* As the above line is certainly jumps, this is a good place for a separate
 ;* sublabel so we put the code which deals with the situation if the user
-;* presses the START button. This case we ensure the hold counter in the memory
-;* is reset then we set next application mode to 2 which represents generation
-;* of the next batch of random numbers. Finally we leave.
+;* presses the START button. This case we set next application mode to 2 which
+;* represents generation of the next batch of random numbers. Finally we leave.
 .start_pressed
-    xor a, a                    ; 1|1   A = 0
-    ld [KEYHOLD], a             ; 2|3/2 reset hold counter in memory
     ld a, 2                     ; 2|2   a = 2 (next app mode/state: generate)
     ld [MODE], a                ; 2|3   save next mode
     jr .post_any_pressed_mode   ; 2|3
