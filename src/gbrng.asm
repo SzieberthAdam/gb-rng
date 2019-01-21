@@ -445,7 +445,7 @@ clean_hram:
 ;* "Popcount parity over a large buffer is about as random as you can get."
 ;* [GBD.PPAR]
 
-generate_seed:
+generate_seed:                  ; 22|265035 (265035/1048576 s ≈ 0.252757 s)
     ld de, RNGSEED              ; 3|3
     ld hl, $C000                ; 3|3ó
 .repeat                         ;  |8×..
@@ -463,8 +463,6 @@ generate_seed:
     inc de                      ; 1|2
     jr .repeat                  ; 2|3
 .done
-                                ; 22|265035 TOTAL
-                                ;       265035/1048576 s ≈ 0.252757 s
 
 duplicate_rngseed:
     ld hl, RNGSEED              ; 3|3
@@ -563,11 +561,11 @@ generate::
 ;* Show the Random Number Map
 ;* -----------------------------------------------------------------------------
 randmap::
-    xor a, a
-    ld [MODE], a
-    call randmap_addrcol0
-    call randmap_addrcol1
-    call randmap_addrcol2
+    xor a, a                    ; 1|1   A = 0 (next app mode/state: no change)
+    ld [MODE], a                ; 2|3   save next mode
+    call randmap_addrcol0       ; 3|6+?
+    call randmap_addrcol1       ; 3|6+?
+    call randmap_addrcol2       ; 3|6+?
     call randmap_vals           ; 3|6+?
     SetVblankHandler          \ ; 8|10  set randmap_vblankhandler as slave
         RANDMAPVBHADDR
@@ -650,7 +648,7 @@ key::                           ; 47|53  (50|56 if KEYNEW/KEYOLD in WRAM)
 ;* to the video ram. Stopping the LCD is not trivial though as it must be done
 ;* during the Vblank period.
 
-stoplcd::
+stoplcd::                       ; 17|x
     ld a, [rLCDC]               ; 2|3   LDH
     rlca                        ; 1|1   put the LCDC high bit into the C flag
     ret nc                      ; 1|5/2 if screen is off already then exit
@@ -663,11 +661,6 @@ stoplcd::
     res 7, a                    ; 2|2   reset bit 7 of LCDC
     ld [rLCDC], a               ; 2|3   LDH
     ret                         ; 1|4
-
-                                ; 17|x  TOTAL
-
-
-
 
 
 ;* Hardcoded Data

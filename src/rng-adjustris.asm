@@ -199,7 +199,7 @@ rand_init::
 ;* The RNG simply XOR's the previous random value with the value of the divider
 ;* register.
 
-rand::
+rand::                          ; 25|40
     ld hl, RNGSEED              ; 3|3
     ld a, [hl+]                 ; 1|2
     sra a                       ; 2|2
@@ -217,7 +217,6 @@ rand::
     add a, [hl]                 ; 1|2
     ret                         ; 1|4
 
-                                ; 25|40  TOTAL
 
 ;* =============================================================================
 ;* REMARKS

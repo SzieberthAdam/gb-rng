@@ -67,7 +67,7 @@ rand_init::
 ;* RANDOM NUMBER GENERATOR
 ;* =============================================================================
 
-rand::
+rand::                          ; 22|32 (26|36 if RNGSEED in WRAM)
     ld a, [RNGSEED]             ; 2|3   LDH
     ld h, a                     ; 1|1
     ld a, [RNGSEED+1]           ; 2|3   LDH
@@ -90,7 +90,6 @@ rand::
 
     ret                         ; 1|4
 
-                                ; 22|32 TOTAL (26|36 if RNGSEED in WRAM)
 
 ;* =============================================================================
 ;* REMARKS

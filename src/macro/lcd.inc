@@ -28,32 +28,32 @@ INCLUDE "HARDWARE.INC"
 ; LYC=LC and timer, serial, and joypad interrupts should be also disabled in the
 ; IE register.
 ; @destroy A
-WaitForAnyBlank: MACRO
+WaitForAnyBlank: MACRO          ; 6|?
 .__wait\@
     ld a, [rSTAT]               ; 2|3
     and %00000010               ; 2|2   in mode 2 or 3?
     jr nz, .__wait\@            ; 2|2/3 if no, wait some more
-ENDM                            ; 6|? TOTAL
+ENDM
 
 
 ; Waits for V-Blank.
 ; @destroy A
-WaitForVBlank: MACRO
+WaitForVBlank: MACRO            ; 6|?
 .__wait\@
 	ld a, [rLY]                 ; 2|3
 	cp a, 144                   ; 2|2   C if row < 144; NC if row >= 144
     jr nc, .__wait\@            ; 2|2/3 if no, wait some more
-ENDM                            ; 6|? TOTAL
+ENDM
 
 
 ; Waits for non-V-Blank.
 ; @destroy A
-WaitForNoVBlank: MACRO
+WaitForNoVBlank: MACRO          ; 6|?
 .__wait\@
 	ld a, [rLY]                 ; 2|3
 	cp a, 144                   ; 2|2   C if row < 144; NC if row >= 144
     jr c, .__wait\@             ; 2|2/3 if no, wait some more
-ENDM                            ; 6|? TOTAL
+ENDM
 
 
 ; Waits for N frames. N should be set in any non-A register and set the register
@@ -62,7 +62,7 @@ ENDM                            ; 6|? TOTAL
 ; first V-Blank state which might be the current LCD mode. Waiting for no
 ; V-Blanks ensure that the next V-Blank belongs to a different frame.
 ; @destroy A
-WaitFrames: MACRO
+WaitFrames: MACRO               ; 18|?
     inc \1                      ; 1|1
     jr .__waitforvblank\@       ; 2|3
 .__wait\@
@@ -71,7 +71,7 @@ WaitFrames: MACRO
     WaitForVBlank               ; 6|?
     dec \1                      ; 1|1
     jr nz, .__wait\@            ; 2|2/3 if no, wait some more
-ENDM                            ; 18|? TOTAL
+ENDM
 
 ; TODO: WaitFramesWithHalt
 

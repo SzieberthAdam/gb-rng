@@ -75,7 +75,7 @@ rand_init::
 ;* The RNG simply XOR's the previous random value with the value of the divider
 ;* register.
 
-rand::
+rand::                          ; 9|15 (11|17 if RNGSEED in WRAM)
     ld a, [rDIV]                ; 2|3   LDH
     ld b, a                     ; 1|1
     ld a, [RNGSEED]             ; 2|3   LDH
@@ -83,7 +83,6 @@ rand::
     ld [RNGSEED], a             ; 2|3   LDH
     ret                         ; 1|4
 
-                                ; 9|15  TOTAL (11|17 if RNGSEED in WRAM)
 
 ;* =============================================================================
 ;* REMARKS

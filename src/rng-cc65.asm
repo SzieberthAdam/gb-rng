@@ -86,7 +86,7 @@ srand::
 ;* x[i + 1] = x[i] * 0x01010101 + 0x31415927
 ;* @return A=B=state bits 31-24 (which have the best entropy),
 ;* C=state bits 23-16, DEHL trashed" [240ptm]
-rand::
+rand::                          ; 36|47
 
 ;* Load the current value to BCDE
 
@@ -127,7 +127,6 @@ rand::
     ld b, a                     ; 1|1
     ret                         ; 1|4
 
-                                ; 36|47 TOTAL
 
 ;* Note that GB-RNG only takes the value from A.
 

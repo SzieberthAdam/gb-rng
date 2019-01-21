@@ -111,7 +111,7 @@ rand_init::
 ;* the result and this new value is the random value produced and also the new
 ;* seed value.
 
-rand::
+rand::                          ; 16|26
     ld hl, RNGSEED              ; 3|4
     ld l, [hl]                  ; 1|2   low byte of the random table address
     ld h, _Random >> 8          ; 2|2   high byte of the random table address
@@ -127,7 +127,6 @@ rand::
 
     ret                         ; 1|4
 
-                                ; 16|26 TOTAL
 
 ;* =============================================================================
 ;* REMARKS

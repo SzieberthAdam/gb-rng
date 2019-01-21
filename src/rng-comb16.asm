@@ -93,7 +93,7 @@ rand_init::
 ;* RANDOM NUMBER GENERATOR
 ;* =============================================================================
 
-rand::
+rand::                          ; 38|54 (46|62 if RNGSEED in WRAM)
 
 ;* The LCG is one of the simplest we can have:
 ;* X[n+1] = (5 * X[n] + 1) mod 65535
@@ -152,7 +152,6 @@ rand::
 
     ret                         ; 1|4
 
-                                ; 38|54 TOTAL (46|62 if RNGSEED in WRAM)
 
 ;* Note that GB-RNG only takes the value from A.
 
