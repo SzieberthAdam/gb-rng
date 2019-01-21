@@ -20,137 +20,184 @@ INCLUDE "MACRO/CP437.INC"
 INCLUDE "MACRO/LCD.INC"
 
 
+;* As the Random Map Screen has a slave interrupt handler, it should be placed
+;* to a fixed address defined in the GBRNG.INC file.
 SECTION	"Random Map V-Blank Handler", ROM0[RANDMAPVBHADDR]
+
+; The Random Map Screen V-Blank handler checks and handles pressed and/or hold
+; UP, DOWN, and START buttons. UP and DOWN moves the Random Map viewport over
+; the random values in the WRAM while START generates another batch of random
+; values. A pressed UP/DOWN moves the viewport by one line while a holded button
+; is initially delayed then moves the viewport continously with increasing
+; speed.
 randmap_vblankhandler::
-    call key
-    ld a, [KEYHOLD]
-    ld c, a
-    ld a, [KEYNEW]              ; 2|3   LDH
-    ld b, a
-    and a, %00001000            ; 2|2   start is pressed
-    jr nz, .at_start
-    ld a, b
-    and a, %10000000            ; 2|2   down is pressed
-    jr nz, .at_down
-    ld a, b
-    and a, %01000000            ; 2|2   up is pressed
-    jr nz, .at_up
-    xor a, a
-    ld c, a
-    jp .done
-.setmove
-    bit 5, c
-    jr nz, .d64
-    bit 4, c
-    jr nz, .d32
-    bit 3, c
-    jr nz, .d16
-    ld d, 0
-    ret
-.d64
-    ld d, 64
-    ret
-.d32
-    ld d, 32
-    ret
-.d16
-    ld d, 16
-    ret
-.at_start
-    ld a, 2
-    ld [MODE], a
-    jr .post_any_pressed_mode
-.at_up
-    ld a, c
-    and a, %01000000
-    jr nz, .at_up_hold
-    ld c, %01000001
-    ld d, 16
-    jr .at_up_guard
-.at_up_hold
-    ld a, c
-    cp a, %01100000
-    jr z, .at_up_hold_inced
-    inc a
-.at_up_hold_inced
-    ld c, a
-    call .setmove
-.at_up_guard
-    ld a, $C0
-    ld e, a
-    ld a, [DISPOFFSET]
-    ld h, a
-    cp a, e                   ; 2|2   Z set if A == $C0
-    ld a, [DISPOFFSET+1]
-    ld l, a
-    jr nz, .at_up_ok
-    and a, a
-    jr z, .done
-.at_up_ok
-    ld a, l
-    sub a, d
-    ld [DISPOFFSET+1], a
-    ld a, h
-    sbc a, 0
-    cp a, e
-    jr nc, .at_down_fine
-    xor a, a
-    ld [DISPOFFSET+1], a
-    ld a, e
-.at_up_fine
-    ld [DISPOFFSET], a
-    jr .post_any_pressed
-.at_down
-    ld a, c
-    and a, %10000000
-    jr nz, .at_down_hold
-    ld c, %10000001
-    ld d, 16
-    jr .at_down_guard
-.at_down_hold
-    ld a, c
-    cp a, %10100000
-    jr z, .at_down_hold_inced
-    inc a
-.at_down_hold_inced
-    ld c, a
-    call .setmove
-.at_down_guard
-    ld a, $DF
-    ld e, a
-    ld a, [DISPOFFSET]
-    ld h, a
-    cp a, e                     ; 2|2   C set if A < $DF
-    ld a, [DISPOFFSET+1]
-    ld l, a
-    jr c, .at_down_ok
-    and a, a
-    jr z, .done
-.at_down_ok
-    ld a, l
-    add a, d
-    ld [DISPOFFSET+1], a
-    ld a, h
-    adc a, 0
-    ld h, a
-    ld a, e
-    cp a, h
-    ld a, h
-    jr nc, .at_down_fine
-    xor a, a
-    ld [DISPOFFSET+1], a
-    ld a, e
-.at_down_fine
-    ld [DISPOFFSET], a
-.post_any_pressed
-    ld a, 1
-    ld [MODE], a
+
+;* First we update our key values in the memory, then we check if START button
+;* is pressed. If yes, we reset the hold value in the memory and initiate a
+;* random value generation. Otherwise we check for UP/DOWN key presses. If one
+;* of them is pressed, we check whether that button is pressed previously so
+;* that it can be considered as hold. If hold, we check how long it has been
+;* hold by loading the `hold counter` value from the memory. Fortunately the
+;* user can either press UP or DOWN but not both so we can have a single
+;* definite `hold counter` which is simply capped at $FF.
+    call key                    ; 3|6+53
+    ld a, [KEYNEW]              ; 2|3   A = newly pressed keys
+    ld b, a                     ; 1|1   B = newly pressed keys
+    and a, %00001000            ; 2|2   NZ if start is pressed
+    jr nz, .start_pressed       ; 2|3/2
+    ld a, b                     ; 1|1   A = newly pressed keys
+    and a, %11000000            ; 2|2   A = newly pressed UP/DOWN keys
+    jr z, .done                 ; 2|3/2 if none of those were pressed, done
+    ld b, a                     ; 1|1   B = newly pressed UP/DOWN keys
+    ld a, [KEYOLD]              ; 2|3   A = previously pressed keys
+    and a, b                    ; 1|1   A = holded UP/DOWN keys
+    jr z, .nohold               ; 2|3/2
+    ld a, [KEYHOLD]             ; 2|3   A = hold counter
+    inc a                       ; 1|1   Z set if hold counter overflow
+    jr nz, .holdok              ; 2|3/2
+    dec a                       ; 1|1   undo increment if overflow
+.holdok
+    ld [KEYHOLD], a             ; 2|3   save new hold counter in memory
+    ld c, a                     ; 1|1   C = hold counter
+
+;* At this point the user holds either UP or DOWN and we know that since how
+;* frames he/she does that. Now we want to determine the offset which will be
+;* applied to the Random Map viewport and that offset must be a multiply of 16.
+;* Moreover, if the user holds the button for only a short time, then we do not
+;* want to move the viewport beyond the one line move which was done when he/she
+;* initially pressed the button. However, if the user holds the button for 16
+;* frames or more, then we want to move the viewport the longer he/she holds the
+;* button, the faster. For hold of 128 frames or more we want to have and offset
+;* of 128, for a hold of 64 frames or more, we ant to have an offset of 64, etc.
+
+;* Thus, our viewport offset value is the number of the most significant bit set
+;* in the hold counter. Modern CPUs have a BSR (Bit Scan Reverse) opcode for
+;* that but not the Game Boy CPU. So what we do is to shift the hold counter to
+;* the left until we find the first bit set. It will reset the CY flag.
+;* Previously we increased the hold counter so it is certainly not zero so that
+;* CY flag will be set sooner or later. To determine the MSB we simultaneously
+;* rotate a single high bit in a byte which have all other bits in low state so
+;* that once we get the CY flag from the shifts it should contain the number of
+;* the MSB in the hold counter. To be able to do the whole process with only one
+;* jump instruction we set the offset byte to 1 and as part of the loop, we
+;* immediately rotate that bit to the right so that it will be %10000000 for the
+;* first shift of the hold register. If the hold register is %1xxxxxxx then we
+;* will get the CY flag and we break the loop. Otherwise we move the offset high
+;* bit to the right and then check the next bit of the hold counter from its
+;* left and so on. Finally we end up with the number of the MSB of the hold
+;* counter in the A register.
+.bsr                            ;       Bit Scan Reverse
+    ld a, %00000001             ; 2|2   A = 1; LSB set
+._bsrloop
+    rrca                        ; 1|1   initially A=128,MSB set; then Rshifted
+    sla c                       ; 2|2   Lshift C; CY = most significant bit
+    jr nc, ._bsrloop            ; 2|3/2
+.checkholdperiod
+    and a, %11110000            ; 2|2   Z set if holded in less than 16 frames
+    jr z, .done                 ; 2|3/2 we do not react for short holds
+    ld c, a                     ; 1|1   C = MSB of hold counter / offset value
+
+;* Now that we know the offset value we want to also know whether we should move
+;* the viewport up or down. Both ways we may require the current Display Offset
+;* (Random Map Viewport Start Address) value multiple times so wwe load that to
+;* HL and we will also pass its finel value in HL. Note that at this point the
+;* user must pressed UP or DOWN. As we will see that the DOWN case took a little
+;* more cycles, we set the jump instruction so that the action points to the UP
+;* case which decreases the disbalance a little (by 1 cycle).
+.holdcounterok
+    ld a, [DISPOFFSET]          ; 2|3   A = Display Offset high byte
+    ld h, a                     ; 2|3   H = Display Offset high byte
+    ld a, [DISPOFFSET+1]        ; 2|3   A = Display Offset low byte
+    ld l, a                     ; 2|3   L = Display Offset high byte
+    bit 6, b                    ; 2|2   NZ: down
+    jr nz, .go_up               ; 2|3/2
+
+;* By going down, our viewport start address can not go above $DF00 as the
+;* Random Map size is 256 so the bottom right value will be $DFFF in that case.
+;* This means that if the high byte of the Display Offset is $DF we do not
+;* permit going down more and that is known before anything else is checked.
+;* Otherwise we add the offset value to the Display Offset.
+.go_down
+    ld a, h                     ; 1|1   A = Display Offset high byte
+    cp a, $DF                   ; 2|2   Z if A = $DF
+    jr z, .setzerodispofflb     ; 2|3/2
+    ld a, l                     ; 2|3   A = Display Offset low byte
+    add a, c                    ; 1|1
+    ld l, a                     ; 1|1   L = new Display Offset low byte
+    jr nc, .go_resolved         ; 2|3/2
+    inc h                       ; 1|1
+    jr .go_resolved             ; 2|3
+
+;* By going up, our viewport start address can not go below $C000. However, we
+;* might easily go up more with a $C0 high byte. For example if our Display
+;* Offset is $C020 and the user presses the up button, the the new Display
+;* Offset will be $C010. So we have to decrease the offset value from the
+;* Display Offset low byte, and prevent the viewport move only if carry flag is
+;* set and also the high byte is $C0. This looks like more complicated for the
+;* first but funnily this requires less code as we can start working with the
+;* Display Offset low byte immediately as it is in A at this point.
+.go_up
+    sub a, c                    ; 1|1
+    ld l, a                     ; 1|1   L = new Display Offset low byte
+    jr nc, .go_resolved         ; 2|3/2
+    ld a, h                     ; 1|1   A = Display Offset high byte
+    cp a, $C0                   ; 2|2   Z if A = $C0
+    jr z, .setzerodispofflb     ; 2|3/2
+    dec h                       ; 1|1
+    jr .go_resolved             ; 2|3
+
+;* As the above line is certainly jumps, this is a good place for a separate
+;* sublabel so we put the code which deals with the situation if the user
+;* presses the START button. This case we ensure the hold counter in the memory
+;* is reset then we set next application mode to 2 which represents generation
+;* of the next batch of random numbers. Finally we leave.
+.start_pressed
+    xor a, a                    ; 1|1   A = 0
+    ld [KEYHOLD], a             ; 2|3/2 reset hold counter in memory
+    ld a, 2                     ; 2|2   a = 2 (next app mode/state: generate)
+    ld [MODE], a                ; 2|3   save next mode
+    jr .post_any_pressed_mode   ; 2|3
+
+;* As the above line is certainly jumps, this is a good place for a separate
+;* sublabel so we put the code which deals with the situation if initial UP/DOWN
+;* keypresses. As we said, we want to move the viewport by only line in these
+;* cases which means that the offset should be 16. We could have put this before
+;* `.holdcounterok` to which it finally jumps to but then the hold scenario
+;* would have to jump which is not desired as that is the longer scenario by its
+;* own.
+.nohold
+    xor a, a                    ; 1|1   A = 0
+    ld [KEYHOLD], a             ; 2|3/2 reset hold counter in memory
+    ld c, 16                    ; 2|2   shift value is 16 for a pressed UP/DOWN
+    jr .holdcounterok           ; 2|3
+
+;* This sublabel is also a jump target for cases where the Display Offset high
+;* byte is set in H and we only require the low byte to be set to zero. Note
+;* that above is a certain jump.
+.setzerodispofflb
+    ld l, 0                     ; 2|2   L = 0 = new Display Offset low byte
+
+;* Now the new Display Offset value is in HL and we want to save it in the
+;* memory. After that we set the next application mode to 1 which represents
+;* refreshing the random map screen.
+.go_resolved
+    ld a, l                     ; 1|1   A = new Display Offset low byte
+    ld [DISPOFFSET+1], a        ; 2|3
+    ld a, h                     ; 1|1
+    ld [DISPOFFSET], a          ; 2|3
+    ld a, 1                     ; 2|2   a = 1 (next app mode/state: randmap)
+    ld [MODE], a                ; 2|3   save next mode
+
+;* If we handled any keypress event then we must changed the next application
+;* mode so we can surely unset this V-Blank handler now.
 .post_any_pressed_mode
-    UnsetVblankHandler
+    UnsetVblankHandler          ; 4|5
+
+;* Finally we put the required teardown code to the end of the slave V-Blank
+;* handler.
 .done
-    ld a, c
-    ld [KEYHOLD], a
     EndOfVblankHandler          ; 5|16
+
 
 SECTION	"Random Map Screen", ROM0
 
