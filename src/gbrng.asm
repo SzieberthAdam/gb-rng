@@ -60,6 +60,7 @@ INCLUDE "MACRO/LCD.INC"
 
 ;* Now we include our modes.
 INCLUDE "MODE/RANDMAP.INC"
+INCLUDE "MODE/VALMAP.INC"
 INCLUDE "MODE/GENERATE.INC"
 
 
@@ -569,14 +570,29 @@ randmap::
 mainloop::
     halt                        ; 1|4
     nop                         ; 1|4
-    ld a, [MODE]
-    and a, a
-    jr z, mainloop
-    cp a, 1
-    jr z, randmap
-    cp a, 2
-    jr z, generate
-    jr mainloop                 ; 2|12
+    ld a, [MODE]                ; 2|3
+    and a, a                    ; 1|1   ≡ cp a, 0
+    jr z, mainloop              ; 2|3/2
+    cp a, 1                     ; 2|2
+    jr z, randmap               ; 2|3/2
+    cp a, 2                     ; 2|2
+    jr z, valmap                ; 2|3/2
+    cp a, 3                     ; 2|2
+    jr z, generate              ; 2|3/2
+    jr mainloop                 ; 2|3
+
+
+;* Show the Value Map
+;* -----------------------------------------------------------------------------
+valmap::
+    SetVblankHandler          \ ; 8|10  set valmap_vblankhandler as slave
+        VALMAPVBHADDR
+    call valmap_new             ; 3|6+?
+.valmap_loop
+    ld a, [MODE]                ; 2|3
+    cp a, 2                     ; 2|2
+    jr z, .valmap_loop          ; 2|3/2
+    jr randmap                  ; 2|3
 
 
 ;* Subroutines

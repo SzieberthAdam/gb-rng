@@ -25,11 +25,12 @@ INCLUDE "MACRO/LCD.INC"
 SECTION	"Random Map V-Blank Handler", ROM0[RANDMAPVBHADDR]
 
 ; The Random Map Screen V-Blank handler checks and handles pressed and/or hold
-; UP, DOWN, and START buttons. UP and DOWN moves the Random Map viewport over
+; UP, DOWN, B, and START buttons. UP and DOWN moves the Random Map viewport over
 ; the random values in the WRAM while START generates another batch of random
 ; values. A pressed UP/DOWN moves the viewport by one line while a holded button
 ; is initially delayed then moves the viewport continously with increasing
-; speed.
+; speed. As long as the user holds the B button, the Value Map is shown to
+; him/her.
 randmap_vblankhandler::
 
 ;* First we update our key values in the memory, then we check if START button
@@ -45,6 +46,9 @@ randmap_vblankhandler::
     ld b, a                     ; 1|1   B = newly pressed keys
     and a, %00001000            ; 2|2   NZ if start is pressed
     jr nz, .start_pressed       ; 2|3/2
+    ld a, b                     ; 1|1   A = newly pressed keys
+    and a, %00000010            ; 2|2   NZ if start is pressed
+    jr nz, .b_pressed           ; 2|3/2
     ld a, b                     ; 1|1   A = newly pressed keys
     and a, %11000000            ; 2|2   A = newly pressed UP/DOWN keys
     jr z, .done                 ; 2|3/2 if none of those were pressed, done
@@ -86,13 +90,13 @@ randmap_vblankhandler::
 ;* bit to the right and then check the next bit of the hold counter from its
 ;* left and so on. Finally we end up with the number of the MSB of the hold
 ;* counter in the A register.
-.bsr                            ;       Bit Scan Reverse
+.bsr                            ; 7|49/8 Bit Scan Reverse
     ld a, %00000001             ; 2|2   A = 1; LSB set
 ._bsrloop
     rrca                        ; 1|1   initially A=128,MSB set; then Rshifted
     sla c                       ; 2|2   Lshift C; CY = most significant bit
     jr nc, ._bsrloop            ; 2|3/2
-.checkholdperiod
+.checkholdperiod                ; 5|5
     and a, %11110000            ; 2|2   Z set if holded in less than 16 frames
     jr z, .done                 ; 2|3/2 we do not react for short holds
     ld c, a                     ; 1|1   C = MSB of hold counter / offset value
@@ -104,7 +108,7 @@ randmap_vblankhandler::
 ;* user must pressed UP or DOWN. As we will see that the DOWN case took a little
 ;* more cycles, we set the jump instruction so that the action points to the UP
 ;* case which decreases the disbalance a little (by 1 cycle).
-.holdcounterok
+.holdcounterok                  ; 12|17/16 (.go_up: 17; .go_down: 16)
     ld a, [DISPOFFSET]          ; 2|3   A = Display Offset high byte
     ld h, a                     ; 2|3   H = Display Offset high byte
     ld a, [DISPOFFSET+1]        ; 2|3   A = Display Offset low byte
@@ -117,7 +121,7 @@ randmap_vblankhandler::
 ;* This means that if the high byte of the Display Offset is $DF we do not
 ;* permit going down more and that is known before anything else is checked.
 ;* Otherwise we add the offset value to the Display Offset.
-.go_down
+.go_down                        ; 14|16/6
     ld a, h                     ; 1|1   A = Display Offset high byte
     cp a, $DF                   ; 2|2   Z if A = $DF
     jr z, .setzerodispofflb     ; 2|3/2
@@ -136,7 +140,7 @@ randmap_vblankhandler::
 ;* set and also the high byte is $C0. This looks like more complicated for the
 ;* first but funnily this requires less code as we can start working with the
 ;* Display Offset low byte immediately as it is in A at this point.
-.go_up
+.go_up                          ; 12|13/5
     sub a, c                    ; 1|1
     ld l, a                     ; 1|1   L = new Display Offset low byte
     jr nc, .go_resolved         ; 2|3/2
@@ -148,10 +152,21 @@ randmap_vblankhandler::
 
 ;* As the above line is certainly jumps, this is a good place for a separate
 ;* sublabel so we put the code which deals with the situation if the user
-;* presses the START button. This case we set next application mode to 2 which
+;* presses the START button. This case we set next application mode to 3 which
 ;* represents generation of the next batch of random numbers. Finally we leave.
-.start_pressed
-    ld a, 2                     ; 2|2   a = 2 (next app mode/state: generate)
+.start_pressed                  ; 6|8
+    ld a, 3                     ; 2|2   A = 3 (next app mode/state: generate)
+    ld [MODE], a                ; 2|3   save next mode
+    jr .post_any_pressed_mode   ; 2|3
+
+;* As the above line is certainly jumps, this is a good place for a separate
+;* sublabel so we put the code which deals with the situation if the user
+;* presses the B button. This case we set next application mode to 2 which
+;* represents the Value Map Screen. Finally we leave.
+.b_pressed                      ; 9|12
+    xor a, a                    ; 1|1   A = 0
+    ld [KEYHOLD], a             ; 2|3   reset hold counter in memory
+    ld a, 2                     ; 2|2   A = 2 (next app mode/state: valmap)
     ld [MODE], a                ; 2|3   save next mode
     jr .post_any_pressed_mode   ; 2|3
 
@@ -162,22 +177,22 @@ randmap_vblankhandler::
 ;* `.holdcounterok` to which it finally jumps to but then the hold scenario
 ;* would have to jump which is not desired as that is the longer scenario by its
 ;* own.
-.nohold
+.nohold                         ; 1|9
     xor a, a                    ; 1|1   A = 0
-    ld [KEYHOLD], a             ; 2|3/2 reset hold counter in memory
+    ld [KEYHOLD], a             ; 2|3   reset hold counter in memory
     ld c, 16                    ; 2|2   shift value is 16 for a pressed UP/DOWN
     jr .holdcounterok           ; 2|3
 
 ;* This sublabel is also a jump target for cases where the Display Offset high
 ;* byte is set in H and we only require the low byte to be set to zero. Note
 ;* that above is a certain jump.
-.setzerodispofflb
+.setzerodispofflb               ; 2|2
     ld l, 0                     ; 2|2   L = 0 = new Display Offset low byte
 
 ;* Now the new Display Offset value is in HL and we want to save it in the
 ;* memory. After that we set the next application mode to 1 which represents
 ;* refreshing the random map screen.
-.go_resolved
+.go_resolved                    ; 10|13
     ld a, l                     ; 1|1   A = new Display Offset low byte
     ld [DISPOFFSET+1], a        ; 2|3
     ld a, h                     ; 1|1
@@ -187,19 +202,19 @@ randmap_vblankhandler::
 
 ;* If we handled any keypress event then we must changed the next application
 ;* mode so we can surely unset this V-Blank handler now.
-.post_any_pressed_mode
+.post_any_pressed_mode          ; 4|5
     UnsetVblankHandler          ; 4|5
 
 ;* Finally we put the required teardown code to the end of the slave V-Blank
 ;* handler.
-.done
+.done                           ; 5|16
     EndOfVblankHandler          ; 5|16
 
 
 SECTION	"Random Map Screen", ROM0
 
 ; This subroutine initializes the Random Map Screen.
-randmap_init:
+randmap_init:                   ; 8|13
     ld a, $C0                   ; 2|2
     ld [DISPOFFSET], a          ; 2|3
     xor a, a                    ; 1|1   ≡ ld a, 0
@@ -210,10 +225,10 @@ randmap_init:
 ; This subroutine draws the first row of the Random Map Screen. The first four
 ; tiles there should be empty spaces (32) and the remaining tiles to be
 ; hexadecimal numbers from 0 to F.
-randmap_row0:
+randmap_row0:                   ; 35|?
     ld hl, $98CC                ; 3|4   start tile address
     ld b, 32                    ; 2|2   B = space tile
-.repeat
+.repeat                         ; 30|?
     WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = tile
     ld [hl+], a                 ; 1|2   write tile to BG map
@@ -233,10 +248,10 @@ randmap_row0:
 ; three tiles there should be empty spaces (32), the fourth tile should be an
 ; CP437 single line topleft corner (218) and the remaining tiles should be
 ; horizontal box drawing lines (196).
-randmap_row1:
+randmap_row1:                   ; 32|?
     ld hl, $98EC                ; 3|4   start tile address
     ld b, 32                    ; 2|2   B = space tile
-.repeat
+.repeat                         ; 22|?
     WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = tile
     ld [hl+], a                 ; 1|2   write tile to BG map
@@ -249,7 +264,7 @@ randmap_row1:
     jr z, .tile218              ; 2|3/2 if yes -> corner tile
     ld b, 196                   ; 2|2   if after -> B = hline tile
     jr .repeat                  ; 2|3
-.tile218
+.tile218                        ; 4|5
     ld b, 218                   ; 2|2   B = corner tile
     jr .repeat                  ; 2|3
 
@@ -259,10 +274,10 @@ randmap_row1:
 ; random values in the appropriate row of the random map. That address increases
 ; by 16 with every row: address = [DISPOFFSET] + 16 * randmaprow. We render the
 ; tiles going downwards vertically.
-randmap_addrcol0:
+randmap_addrcol0:               ; 51|?
     ld hl, $990C                ; 3|4   start tile address
     ld c, 0                     ; 2|2   C = 16 * randmaprow
-.repeat
+.repeat                         ; 46|?
     ld a, [DISPOFFSET+1]        ; 2|3   A = topleft address low byte
     add a, c                    ; 1|1   A = current address low byte
     ld a, [DISPOFFSET]          ; 2|3   A = topleft address high byte
@@ -293,10 +308,10 @@ randmap_addrcol0:
 ; random values in the appropriate row of the random map. That address increases
 ; by 16 with every row: address = [DISPOFFSET] + 16 * randmaprow. We render the
 ; tiles going downwards vertically.
-randmap_addrcol1:
+randmap_addrcol1:               ; 48|?
     ld hl, $990D                ; 3|4   start tile address
     ld c, 0                     ; 2|2   C = 16 * randmaprow
-.repeat
+.repeat                         ; 43|?
     ld a, [DISPOFFSET+1]        ; 2|3   A = topleft address low byte
     add a, c                    ; 1|1   A = current address low byte
     ld a, [DISPOFFSET]          ; 2|3   A = topleft address high byte
@@ -326,10 +341,10 @@ randmap_addrcol1:
 ; random values in the appropriate row of the random map. That address increases
 ; by 16 with every row: address = [DISPOFFSET] + 16 * randmaprow. We render the
 ; tiles going downwards vertically.
-randmap_addrcol2:
+randmap_addrcol2:               ; 46|?
     ld hl, $990E                ; 3|4   start tile address
     ld c, 0                     ; 2|2   C = 16 * randmaprow
-.repeat
+.repeat                         ; 41|?
     ld a, [DISPOFFSET+1]        ; 2|3   A = topleft address low byte
     add a, c                    ; 1|1   A = current address low byte (ALB)
     and a, $F0                  ; 2|2   trim the low nibble
@@ -355,11 +370,15 @@ randmap_addrcol2:
 
 ; This subroutine draws the fourth column of the row addresses of the Random Map
 ; Screen. These are CP437 single vertical box drawing lines (179).
-randmap_addrcol3:
-    ld hl, $990F                ; 3|4   start tile address
+randmap_addrcol3:               ; 5|6
     ld b, 179                   ; 2|2   B = vertical line tile
-    ld c, 0                     ; 2|2   C = 16 * randmaprow
-.repeat
+    ld hl, $990F                ; 3|4   start tile address
+
+; This subroutine fills the column whose top tile is in the address in HL with
+; the constant value of the B register.
+randmap_fillcol::               ; 22|?
+    ld c, 16                    ; 2|2
+.repeat                         ; 20|?
     WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = vertical line tile
     ld [hl], a                  ; 1|2   write tile to BG map
@@ -369,23 +388,19 @@ randmap_addrcol3:
     ld a, h                     ; 1|1   ...
     adc a, 32 / 256             ; 2|2   ...
     ld h, a                     ; 1|1   ___
-    cp a, $9B                   ; 2|2   at $9B0F we are done
-    ret z                       ; 1|5/2 ___
-    ld a, c                     ; 1|1   C += 16
-    add a, 16                   ; 2|2   ...
-    ld c, a                     ; 1|1   ___
-    jr .repeat                  ; 2|3
-
+    dec c                       ; 1|1   C -= 1
+    jr nz, .repeat              ; 2|3/2
+    ret                         ; 1|4
 
 ; This subroutine clears the random map area of the Random Map Screen which is
 ; the bottom right 16*16 tiles of the screen. As we are going to display 256
 ; empty space (32) values, a single byte counter (and offset) will serve us
 ; well.
-clear_randmap_vals:
+clear_randmap_vals:             ; 31|?
     ld hl, $9910                ; 3|4   start address
     ld b, 32                    ; 2|2   B = space tile
     ld c, 0                     ; 2|2   C = value counter/offset
-.repeat
+.repeat                         ; 24|?
     WaitForAnyBlank             ; 6|?
     ld a, b                     ; 1|1   A = space tile
     ld [hl+], a                 ; 1|2   write space tile to BG map
@@ -461,10 +476,10 @@ randmap_val_blank::             ; 29|36
 ; This subroutine draws the random map area of the Random Map Screen which is
 ; the bottom right 16*16 tiles of the screen. As we are going to display 256
 ; values, a single byte counter (and offset) will serve us well.
-randmap_vals:
+randmap_vals:                   ; 40|?
     ld hl, $9910                ; 3|4   start address
     ld c, 0                     ; 2|2   C = value counter/offset
-.repeat
+.repeat                         ; 35|?
     ld a, [DISPOFFSET+1]        ; 2|3   A = topleft address low byte
     add a, c                    ; 1|1   A = current address low byte
     ld e, a                     ; 1|1   E = current address low byte
@@ -491,15 +506,15 @@ randmap_vals:
 
 
 ; This subroutine draws a new clear Random Map Screen.
-randmap_new:
-    call randmap_init
-    call randmap_row0
-    call randmap_row1
-    call randmap_addrcol0
-    call randmap_addrcol1
-    call randmap_addrcol2
-    call randmap_addrcol3
-    call clear_randmap_vals
+randmap_new:                    ; 25|?
+    call randmap_init           ; 3|6+13
+    call randmap_row0           ; 3|6+?
+    call randmap_row1           ; 3|6+?
+    call randmap_addrcol0       ; 3|6+?
+    call randmap_addrcol1       ; 3|6+?
+    call randmap_addrcol2       ; 3|6+?
+    call randmap_addrcol3       ; 3|6+?
+    call clear_randmap_vals     ; 3|6+?
     ret                         ; 1|4
 
 ENDC; RANDMAP_INC

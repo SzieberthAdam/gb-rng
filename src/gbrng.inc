@@ -30,6 +30,7 @@ GBRNG_INC = 1
 
 GENERATEVBHADDR EQU $5000
 RANDMAPVBHADDR EQU $5100
+VALMAPVBHADDR EQU $5200
 
 ;* As GB-RNG uses the whole WRAM to store the generated random values, all we
 ;* remained is the HRAM space. Note that there is an RNG.INC too which defines
